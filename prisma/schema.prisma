@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================================
+// NEXTAUTH / AUTH.JS & INVITE-ONLY ADMISSION MODELS
+// ============================================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model PasswordCredential {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  passwordHash      String
+  passwordChangedAt DateTime  @default(now())
+  resetTokenHash    String?   @unique
+  resetExpiresAt    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([resetExpiresAt])
+}
+
+model AccountInvitation {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  email           String
+  normalizedEmail String
+  activeForEmail  String?   @unique
+  tokenHash       String?   @unique
+  role            String    @default("STUDENT") // "ADMIN" | "TUTOR" | "STUDENT"
+  status          String    @default("PENDING") // "PENDING" | "ACCEPTED" | "REVOKED" | "EXPIRED"
+  maxUses         Int       @default(1)
+  usedCount       Int       @default(0)
+  invitedById     String?
+  acceptedById    String?
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+
+  invitedBy  User? @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  acceptedBy User? @relation("InvitationAcceptor", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  @@index([status, expiresAt])
+  @@index([normalizedEmail, createdAt])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  actorEmail   String   @default("system@gauthmath.com")
+  action       String
+  targetType   String
+  targetId     String?
+  metadataJson String   @default("{}")
+  ipAddress    String   @default("127.0.0.1")
+  createdAt    DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([action, createdAt])
+  @@index([actorId, createdAt])
+}
+
+// ============================================================================
+// USER & QUOTA MODELS
+// ============================================================================
+
+model User {
+  id                     String    @id @default(cuid())
+  email                  String    @unique
+  emailVerified          DateTime?
+  name                   String    @default("Gauth Learner")
+  image                  String?
+  role                   String    @default("STUDENT") // "ADMIN" | "TUTOR" | "STUDENT"
+  status                 String    @default("ACTIVE")  // "ACTIVE" | "REVOKED"
+  planTier               String    @default("FREE")    // "FREE" | "PLUS"
+  billingCycle           String    @default("yearly")  // "monthly" | "quarterly" | "yearly"
+  freeQueriesRemaining   Int       @default(3)
+  aiProRemaining         Int       @default(1)
+  courseCreditsRemaining Int       @default(3)
+  preferredAiProvider    String    @default("auto")    // "auto" | "copilot" | "azure-openai"
+  passwordHash           String?
+  revokedAt              DateTime?
+  revokedReason          String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  accounts            Account[]
+  sessions            Session[]
+  passwordCredential  PasswordCredential?
+  invitationsSent     AccountInvitation[] @relation("InvitationInviter")
+  invitationsAccepted AccountInvitation[] @relation("InvitationAcceptor")
+  auditLogs           AuditLog[]
+  questions           HomeworkQuestion[]
+  atlasStories        AtlasStory[]
+  academyCourses      AcademyCourse[]
+  writingDocuments    WritingDocument[]
+}
+
+// ============================================================================
+// HOMEWORK HELPER, STEP-BY-STEP SOLUTIONS, ATLAS, ACADEMY & WRITING MODELS
+// ============================================================================
+
+model HomeworkQuestion {
+  id                    String   @id @default(cuid())
+  slug                  String   @unique
+  userId                String?
+  subject               String   @default("Math")
+  topic                 String   @default("Algebra & Equations")
+  promptText            String
+  latexExpression       String?
+  croppedImageData      String?
+  answerSummary         String
+  stepsJson             String   @default("[]")
+  quickTip              String   @default("")
+  deepThinkingText      String   @default("")
+  graphConfigJson       String?
+  providerUsed          String   @default("symbolic+copilot")
+  accuracyScore         Int      @default(99)
+  isVerifiedBank        Boolean  @default(false)
+  isBookmarked          Boolean  @default(false)
+  helpfulCount          Int      @default(12)
+  unhelpfulCount        Int      @default(0)
+  followUpMessagesJson  String   @default("[]")
+  tutorEscalationStatus String   @default("NONE") // "NONE" | "ASSIGNED" | "ANSWERED"
+  tutorName             String   @default("Dr. Evelyn Gauss (Ph.D. Mathematics)")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([subject, isVerifiedBank])
+  @@index([userId, createdAt])
+}
+
+model AtlasStory {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  title        String
+  category     String   @default("Science")
+  summary      String
+  visualTheme  String   @default("silk-road")
+  hotspotsJson String   @default("[]")
+  sourcesJson  String   @default("[]")
+  viewsCount   Int      @default(1240)
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([category])
+}
+
+model AcademyCourse {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  title           String
+  category        String   @default("Science")
+  subCategory     String   @default("How Things Work")
+  mode            String   @default("LECTURE") // "INFINITE" | "LECTURE"
+  summary         String
+  durationSec     Int      @default(105)
+  simulationType  String   @default("sweet-spot-physics")
+  chaptersJson    String   @default("[]")
+  quizJson        String   @default("[]")
+  chatHistoryJson String   @default("[]")
+  viewsCount      Int      @default(860)
+  createdById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([category])
+}
+
+model WritingDocument {
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  title            String
+  genre            String   @default("Argumentative Essay")
+  gradeLevel       String   @default("University / AP")
+  wordCount        Int      @default(650)
+  promptText       String
+  contentText      String
+  annotationsJson  String   @default("[]")
+  aiScore          Int      @default(96)
+  isCuratedExample Boolean  @default(true)
+  userId           String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([genre, isCuratedExample])
+}

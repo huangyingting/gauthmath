@@ -1,0 +1,174 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getActiveOrDemoUser } from '@/lib/server-session';
+import { solveHomeworkProblem, type GauthAiProviderMode } from '@/lib/ai/provider';
+
+export async function GET(req: NextRequest) {
+  const subject = req.nextUrl.searchParams.get('subject');
+  const query = req.nextUrl.searchParams.get('q');
+  const bookmarkedOnly = req.nextUrl.searchParams.get('bookmarked') === '1';
+
+  const whereClause: Record<string, unknown> = {};
+  if (subject && subject !== 'All') {
+    whereClause.subject = subject;
+  }
+  if (bookmarkedOnly) {
+    whereClause.isBookmarked = true;
+  }
+  if (query && query.trim()) {
+    whereClause.OR = [
+      { promptText: { contains: query.trim() } },
+      { topic: { contains: query.trim() } },
+      { answerSummary: { contains: query.trim() } },
+    ];
+  }
+
+  const questions = await prisma.homeworkQuestion.findMany({
+    where: whereClause,
+    orderBy: { createdAt: 'desc' },
+    take: 30,
+  });
+
+  return NextResponse.json({
+    ok: true,
+    questions: questions.map((q) => ({
+      ...q,
+      steps: JSON.parse(q.stepsJson || '[]'),
+      keyConcepts: (() => {
+        try {
+          return JSON.parse(q.deepThinkingText || '[]');
+        } catch {
+          return [];
+        }
+      })(),
+      graphConfig: q.graphConfigJson ? JSON.parse(q.graphConfigJson) : null,
+    })),
+  });
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const promptText = String(body.prompt || body.promptText || '').trim();
+    const subject = String(body.subject || 'Math');
+    const mode = body.mode === 'PRO' ? 'PRO' : 'STANDARD';
+    const croppedImageData = body.croppedImageData
+      ? String(body.croppedImageData)
+      : null;
+    const providerOverride = body.providerOverride as
+      | GauthAiProviderMode
+      | undefined;
+
+    if (!promptText) {
+      return NextResponse.json(
+        { ok: false, error: 'Please enter a question or upload an image crop.' },
+        { status: 400 }
+      );
+    }
+
+    const user = await getActiveOrDemoUser();
+
+    // Enforce quota if user is on FREE tier and bypassQuota is not set
+    if (user && user.planTier === 'FREE' && !body.bypassQuota) {
+      if (mode === 'PRO' && user.aiProRemaining <= 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: 'QUOTA_EXCEEDED_PRO',
+            error:
+              'Your free Gauth AI Pro trials are exhausted. Upgrade to Gauth PLUS for unlimited AI Pro Super Tutor solutions.',
+          },
+          { status: 402 }
+        );
+      }
+      if (user.freeQueriesRemaining <= 0) {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: 'QUOTA_EXCEEDED_FREE',
+            error:
+              'You have used all free daily homework solutions. Upgrade to Gauth PLUS for unlimited step-by-step answers.',
+          },
+          { status: 402 }
+        );
+      }
+    }
+
+    const solved = await solveHomeworkProblem({
+      prompt: promptText,
+      subject,
+      mode,
+      providerOverride,
+    });
+
+    const slug = `sol-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+    const created = await prisma.homeworkQuestion.create({
+      data: {
+        slug,
+        userId: user?.id || null,
+        subject: solved.subject,
+        topic: solved.subTopic,
+        promptText: solved.prompt,
+        latexExpression: solved.latexExpression,
+        croppedImageData,
+        answerSummary: solved.answerSummary,
+        stepsJson: JSON.stringify(solved.steps),
+        quickTip:
+          solved.keyConcepts[0]?.description ||
+          'Verify your solution by substituting back into the original equation.',
+        deepThinkingText: JSON.stringify(solved.keyConcepts),
+        graphConfigJson: solved.graphData
+          ? JSON.stringify(solved.graphData)
+          : null,
+        providerUsed: `${solved.aiProvider}:${solved.aiModel}`,
+        accuracyScore: 99,
+        isVerifiedBank: true,
+        tutorName: solved.tutorName,
+        followUpMessagesJson: JSON.stringify([
+          {
+            role: 'assistant',
+            text: `I solved "${solved.prompt}" in ${solved.solveTimeMs}ms using ${solved.aiModel}. Ask any follow-up question below!`,
+            timestamp: new Date().toISOString(),
+          },
+        ]),
+      },
+    });
+
+    // Decrement free user quota if applicable (keep >= 1 in demo unless explicitly testing exhaustion)
+    if (user && user.planTier === 'FREE' && body.decrementQuota) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          freeQueriesRemaining: Math.max(0, user.freeQueriesRemaining - 1),
+          ...(mode === 'PRO'
+            ? { aiProRemaining: Math.max(0, user.aiProRemaining - 1) }
+            : {}),
+        },
+      });
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        question: {
+          ...created,
+          steps: solved.steps,
+          keyConcepts: solved.keyConcepts,
+          graphConfig: solved.graphData,
+          followUpSuggestions: solved.followUpSuggestions,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          error instanceof Error ? error.message : 'Failed to solve question.',
+      },
+      { status: 500 }
+    );
+  }
+}
