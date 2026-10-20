@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { chatFollowUpWithTutor } from '@/lib/ai/provider';
+import { parseTutorHistory } from '@/lib/tutoring';
 
 export async function GET(req: NextRequest) {
   const category = req.nextUrl.searchParams.get('category');
@@ -25,7 +26,10 @@ export async function POST(req: NextRequest) {
   const slug = String(body.slug || '');
   const question = String(body.question || '').trim();
 
-  if (!slug || !question) {
+  let history;
+  try { history = parseTutorHistory(body.history); }
+  catch (error) { return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Invalid tutor history.' }, { status: 400 }); }
+  if (!slug || !question || question.length > 2000 || (body.locale !== undefined && !['en', 'zh'].includes(body.locale))) {
     return NextResponse.json(
       { ok: false, error: 'Course slug and question are required.' },
       { status: 400 }
@@ -46,6 +50,9 @@ export async function POST(req: NextRequest) {
     content?: string;
     explanation?: string;
   }>;
+  if (body.slideIndex !== undefined && (!Number.isInteger(body.slideIndex) || body.slideIndex < 0 || body.slideIndex >= slides.length)) {
+    return NextResponse.json({ ok: false, error: 'Choose an existing lesson slide.' }, { status: 400 });
+  }
   const slideIdx =
     typeof body.slideIndex === 'number' &&
     body.slideIndex >= 0 &&
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
       : 0;
   const activeSlide = slides[slideIdx];
   const slideContext = activeSlide
-    ? `Slide ${slideIdx + 1}: "${activeSlide.title || body.slideTitle || ''}" | Formula: ${activeSlide.formula || body.slideFormula || 'N/A'} | Key Idea: ${activeSlide.content || activeSlide.explanation || course.summary}`
+    ? `Slide ${slideIdx + 1}: "${activeSlide.title || ''}" | Formula: ${activeSlide.formula || 'N/A'} | Key Idea: ${activeSlide.content || activeSlide.explanation || course.summary}`
     : undefined;
 
   const reply = await chatFollowUpWithTutor({
@@ -64,6 +71,8 @@ export async function POST(req: NextRequest) {
       : course.summary,
     userMessage: question,
     slideContext,
+    history,
+    locale: body.locale,
   });
 
   return NextResponse.json({

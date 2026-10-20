@@ -12,10 +12,9 @@ async function main() {
   const lastWeek = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
 
   const adminPasswordHash = await hashPassword('AdminPassword123!');
-  const studentPasswordHash = await hashPassword('GauthPassword123!');
   const tutorPasswordHash = await hashPassword('TutorPassword123!');
 
-  // 1. Seed Users (Admin, Joshuah Powlowski from .cred, and Verified Tutor)
+  // 1. Seed Platform Administrator and Verified Faculty Tutor (no demo student user)
   const admin = await prisma.user.upsert({
     where: { email: 'admin@gauthmath.com' },
     update: {
@@ -42,28 +41,11 @@ async function main() {
     },
   });
 
-  const joshuah = await prisma.user.upsert({
-    where: { email: 'joshuah@gauthmath.com' },
-    update: {
-      name: 'Joshuah Powlowski',
+  // Clean up any legacy demo student accounts
+  await prisma.user.deleteMany({
+    where: {
       role: 'STUDENT',
-      status: 'ACTIVE',
-      passwordHash: studentPasswordHash,
-    },
-    create: {
-      email: 'joshuah@gauthmath.com',
-      name: 'Joshuah Powlowski',
-      role: 'STUDENT',
-      status: 'ACTIVE',
-      planTier: 'FREE',
-      freeQueriesRemaining: 5,
-      aiProRemaining: 2,
-      courseCreditsRemaining: 3,
-      passwordHash: studentPasswordHash,
-      emailVerified: now,
-      passwordCredential: {
-        create: { passwordHash: studentPasswordHash, passwordChangedAt: now },
-      },
+      email: { notIn: ['admin@gauthmath.com', 'tutor@gauthmath.com'] },
     },
   });
 
@@ -262,20 +244,7 @@ async function main() {
     await prisma.homeworkQuestion.upsert({
       where: { slug: q.slug },
       update: {
-        subject: q.subject,
-        topic: q.topic,
-        promptText: q.promptText,
-        latexExpression: solved.latexPrompt,
-        answerSummary: solved.answerSummary,
-        stepsJson: JSON.stringify(solved.steps),
-        quickTip: solved.keyConcepts[0]?.description || 'Isolate variables systematically and verify roots by substitution.',
-        deepThinkingText: JSON.stringify(solved.keyConcepts),
-        graphConfigJson: graphData ? JSON.stringify(graphData) : null,
-      },
-      create: {
-        id: q.id,
-        slug: q.slug,
-        userId: joshuah.id,
+        userId: null,
         subject: q.subject,
         topic: q.topic,
         promptText: q.promptText,
@@ -288,7 +257,28 @@ async function main() {
         followUpMessagesJson: JSON.stringify([
           {
             role: 'assistant',
-            text: `Hi Joshuah! I’ve verified all ${solved.steps.length} steps for "${q.promptText}". Ask me anything if you want to explore a specific step or try a practice variation!`,
+            text: `All ${solved.steps.length} derivation steps for "${q.promptText}" have been verified by the Symbolic CAS engine. Ask any follow-up question below to inspect intermediate steps or explore a variation.`,
+            timestamp: now.toISOString(),
+          },
+        ]),
+      },
+      create: {
+        id: q.id,
+        slug: q.slug,
+        userId: null,
+        subject: q.subject,
+        topic: q.topic,
+        promptText: q.promptText,
+        latexExpression: solved.latexPrompt,
+        answerSummary: solved.answerSummary,
+        stepsJson: JSON.stringify(solved.steps),
+        quickTip: solved.keyConcepts[0]?.description || 'Isolate variables systematically and verify roots by substitution.',
+        deepThinkingText: JSON.stringify(solved.keyConcepts),
+        graphConfigJson: graphData ? JSON.stringify(graphData) : null,
+        followUpMessagesJson: JSON.stringify([
+          {
+            role: 'assistant',
+            text: `All ${solved.steps.length} derivation steps for "${q.promptText}" have been verified by the Symbolic CAS engine. Ask any follow-up question below to inspect intermediate steps or explore a variation.`,
             timestamp: now.toISOString(),
           },
         ]),

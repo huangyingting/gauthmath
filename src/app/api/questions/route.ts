@@ -156,19 +156,13 @@ export async function POST(req: NextRequest) {
       });
 
       if (user && user.planTier === 'FREE' && solved.status === 'solved') {
-        const isSharedDemoPersona =
-          user.email === 'joshuah@gauthmath.com' && !body.decrementQuota;
-        const minFloor = isSharedDemoPersona ? 1 : 0;
         await tx.user.update({
           where: { id: user.id },
           data: {
-            freeQueriesRemaining: Math.max(
-              minFloor,
-              user.freeQueriesRemaining - 1
-            ),
+            freeQueriesRemaining: Math.max(0, user.freeQueriesRemaining - 1),
             ...(mode === 'PRO'
               ? {
-                  aiProRemaining: Math.max(minFloor, user.aiProRemaining - 1),
+                  aiProRemaining: Math.max(0, user.aiProRemaining - 1),
                 }
               : {}),
           },
@@ -187,6 +181,8 @@ export async function POST(req: NextRequest) {
           keyConcepts: solved.keyConcepts,
           graphConfig: solved.graphData,
           followUpSuggestions: solved.followUpSuggestions,
+          verificationStatus: solved.verificationStatus,
+          verificationDetail: solved.verificationDetail,
         },
       },
       { status: 201 }

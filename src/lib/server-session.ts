@@ -22,33 +22,5 @@ export async function getActiveSessionUser() {
 }
 
 export async function getActiveOrDemoUser() {
-  const session = await getServerSession(authOptions);
-  const sessionUser = session?.user as { id?: string; email?: string } | undefined;
-
-  if (sessionUser?.id) {
-    const user = await prisma.user.findUnique({
-      where: { id: sessionUser.id },
-    });
-    // Never fall back to demo user if an authenticated user has been revoked
-    if (!user || user.status === 'REVOKED') {
-      return null;
-    }
-    return user;
-  }
-
-  // In strict production mode (ALLOW_DEMO_PERSONA=false), never fall back to demo user
-  if (process.env.ALLOW_DEMO_PERSONA === 'false') {
-    return null;
-  }
-
-  // Fallback to default authenticated persona (Joshuah Powlowski from .cred) for unauthenticated preview
-  const demoUser = await prisma.user.findFirst({
-    where: { email: 'joshuah@gauthmath.com', status: 'ACTIVE' },
-  });
-  if (demoUser) return demoUser;
-
-  return prisma.user.findFirst({
-    where: { status: 'ACTIVE' },
-    orderBy: { createdAt: 'asc' },
-  });
+  return getActiveSessionUser();
 }

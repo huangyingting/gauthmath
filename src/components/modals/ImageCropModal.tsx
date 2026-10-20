@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/components/i18n/LanguageProvider';
 import React, { useState, useRef } from 'react';
 import {
   X,
@@ -71,6 +72,7 @@ export function ImageCropModal({
   onClose,
   onExtractedQuestion,
 }: ImageCropModalProps) {
+  const { t } = useI18n();
   const [selectedPreset, setSelectedPreset] = useState(WORKSHEET_PRESETS[0]);
   const [cropBox, setCropBox] = useState(WORKSHEET_PRESETS[0].defaultCrop);
   const [rotation, setRotation] = useState(0);
@@ -194,30 +196,29 @@ export function ImageCropModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-sm"
       data-testid="image-crop-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="crop-modal-title"
     >
-      <div className="w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+      <div className="max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-atelier-surface shadow-2xl">
         {/* Top Bar */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500 text-white">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-atelier-lilac text-atelier-vermilion">
               <Crop className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Crop One Question at a Time (8-Handle Vision OCR Scanner)
-              </h3>
-              <p className="text-xs text-slate-500">
-                Upload a photo or select a sample worksheet and frame a single question with the 8 crop handles
-              </p>
+              <h3 id="crop-modal-title" className="text-lg font-semibold text-atelier-ink">{t("Let's look at one problem.")}</h3>
+              <p className="text-xs text-slate-500">{t("Upload a photo, then frame the question you want to explore.")}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Close Image Crop Modal"
+            aria-label={t("Close Image Crop Modal")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -238,13 +239,13 @@ export function ImageCropModal({
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {preset.label}
+                  {t(preset.label)}
                 </button>
               ))}
             </div>
 
             <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100">
-              <Upload className="h-3.5 w-3.5 text-rose-500" />
+              <Upload className="h-3.5 w-3.5 text-atelier-vermilion" />
               <span>{uploadedFileName || 'Upload Local Image'}</span>
               <input
                 type="file"
@@ -275,20 +276,18 @@ export function ImageCropModal({
               >
                 <div className="mb-2 flex items-center justify-between border-b border-slate-300 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   <span>{selectedPreset.previewTitle}</span>
-                  <span>Subject: {selectedPreset.subject}</span>
+                  <span>{t("Subject: ")}{t(selectedPreset.subject)}</span>
                 </div>
                 <p className="mt-6 text-center font-mono text-xl font-bold text-slate-900 sm:text-2xl">
                   {customFormula || selectedPreset.previewFormula}
                 </p>
-                <p className="mt-4 text-center text-xs text-slate-500">
-                  Show all algebraic steps and verify domain constraints.
-                </p>
+                <p className="mt-4 text-center text-xs text-slate-500">{t("Show all algebraic steps and verify domain constraints.")}</p>
               </div>
             )}
 
             {/* Dark Mask Overlay outside crop region */}
             <div
-              className="absolute border-2 border-rose-500 bg-rose-500/10 shadow-[0_0_0_9999px_rgba(15,23,42,0.55)] transition-all duration-150"
+              className="absolute border-2 border-atelier-citron bg-atelier-citron/10 shadow-[0_0_0_9999px_rgba(50,36,56,0.55)] transition-all duration-150"
               style={{
                 left: `${cropBox.x}%`,
                 top: `${cropBox.y}%`,
@@ -307,51 +306,51 @@ export function ImageCropModal({
               {/* 8 Resize Handles (NW, N, NE, E, SE, S, SW, W) */}
               <button
                 type="button"
-                aria-label="Resize North-West Handle"
+                aria-label={t('Resize North-West Handle')}
                 onClick={() => adjustHandle(-2, -2, 4, 4)}
-                className="absolute -left-2 -top-2 h-4 w-4 rounded-full border-2 border-white bg-rose-500 shadow"
+                className="absolute -left-2 -top-2 h-4 w-4 rounded-full border-2 border-white bg-atelier-vermilion shadow"
               />
               <button
                 type="button"
-                aria-label="Resize North Handle"
+                aria-label={t('Resize North Handle')}
                 onClick={() => adjustHandle(0, -2, 0, 4)}
-                className="absolute left-1/2 -top-2 h-3.5 w-6 -translate-x-1/2 rounded-full border-2 border-white bg-rose-500 shadow"
+                className="absolute left-1/2 -top-2 h-3.5 w-6 -translate-x-1/2 rounded-full border-2 border-white bg-atelier-vermilion shadow"
               />
               <button
                 type="button"
-                aria-label="Resize North-East Handle"
+                aria-label={t('Resize North-East Handle')}
                 onClick={() => adjustHandle(0, -2, 4, 4)}
-                className="absolute -right-2 -top-2 h-4 w-4 rounded-full border-2 border-white bg-rose-500 shadow"
+                className="absolute -right-2 -top-2 h-4 w-4 rounded-full border-2 border-white bg-atelier-vermilion shadow"
               />
               <button
                 type="button"
-                aria-label="Resize East Handle"
+                aria-label={t('Resize East Handle')}
                 onClick={() => adjustHandle(0, 0, 4, 0)}
-                className="absolute -right-2 top-1/2 h-6 w-3.5 -translate-y-1/2 rounded-full border-2 border-white bg-rose-500 shadow"
+                className="absolute -right-2 top-1/2 h-6 w-3.5 -translate-y-1/2 rounded-full border-2 border-white bg-atelier-vermilion shadow"
               />
               <button
                 type="button"
-                aria-label="Resize South-East Handle"
+                aria-label={t('Resize South-East Handle')}
                 onClick={() => adjustHandle(0, 0, 4, 4)}
-                className="absolute -bottom-2 -right-2 h-4 w-4 rounded-full border-2 border-white bg-rose-500 shadow"
+                className="absolute -bottom-2 -right-2 h-4 w-4 rounded-full border-2 border-white bg-atelier-vermilion shadow"
               />
               <button
                 type="button"
-                aria-label="Resize South Handle"
+                aria-label={t('Resize South Handle')}
                 onClick={() => adjustHandle(0, 0, 0, 4)}
-                className="absolute -bottom-2 left-1/2 h-3.5 w-6 -translate-x-1/2 rounded-full border-2 border-white bg-rose-500 shadow"
+                className="absolute -bottom-2 left-1/2 h-3.5 w-6 -translate-x-1/2 rounded-full border-2 border-white bg-atelier-vermilion shadow"
               />
               <button
                 type="button"
-                aria-label="Resize South-West Handle"
+                aria-label={t('Resize South-West Handle')}
                 onClick={() => adjustHandle(-2, 0, 4, 4)}
-                className="absolute -bottom-2 -left-2 h-4 w-4 rounded-full border-2 border-white bg-rose-500 shadow"
+                className="absolute -bottom-2 -left-2 h-4 w-4 rounded-full border-2 border-white bg-atelier-vermilion shadow"
               />
               <button
                 type="button"
-                aria-label="Resize West Handle"
+                aria-label={t('Resize West Handle')}
                 onClick={() => adjustHandle(-2, 0, 4, 0)}
-                className="absolute -left-2 top-1/2 h-6 w-3.5 -translate-y-1/2 rounded-full border-2 border-white bg-rose-500 shadow"
+                className="absolute -left-2 top-1/2 h-6 w-3.5 -translate-y-1/2 rounded-full border-2 border-white bg-atelier-vermilion shadow"
               />
             </div>
 
@@ -368,7 +367,7 @@ export function ImageCropModal({
           {errorMessage && (
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
               <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{errorMessage}</span>
+              <span>{t(errorMessage)}</span>
             </div>
           )}
 
@@ -380,9 +379,7 @@ export function ImageCropModal({
                 onClick={() => setRotation((r) => (r + 90) % 360)}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
-                <RotateCw className="h-3.5 w-3.5" />
-                Rotate 90°
-              </button>
+                <RotateCw className="h-3.5 w-3.5" />{t("Rotate 90°")}</button>
               <button
                 type="button"
                 onClick={() => {
@@ -391,9 +388,7 @@ export function ImageCropModal({
                 }}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Reset Box
-              </button>
+                <RefreshCw className="h-3.5 w-3.5" />{t("Reset Box")}</button>
             </div>
 
             <div className="flex flex-1 items-center gap-2 sm:max-w-xs">
@@ -401,8 +396,8 @@ export function ImageCropModal({
                 type="text"
                 value={customFormula}
                 onChange={(e) => setCustomFormula(e.target.value)}
-                placeholder="Or override OCR text (optional)..."
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-800 focus:border-rose-500 focus:outline-hidden"
+                placeholder={t("Or override OCR text (optional)...")}
+                className="lumina-input w-full px-3.5 py-2 text-xs"
               />
             </div>
 
@@ -411,10 +406,10 @@ export function ImageCropModal({
               onClick={handleConfirmCrop}
               disabled={isExtracting}
               data-testid="confirm-crop-extract-btn"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50"
+              className="primary-button"
             >
               <Sparkles className="h-4 w-4" />
-              {isExtracting ? 'Extracting LaTeX...' : 'Crop & Solve Question'}
+              {isExtracting ? t('Extracting LaTeX...') : t('Crop & Solve Question')}
             </button>
           </div>
         </div>

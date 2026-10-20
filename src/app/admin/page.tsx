@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from '@/components/i18n/LanguageProvider';
+import type { LocalizedMessage } from '@/lib/i18n';
 import React, { useState, useEffect } from 'react';
 import {
   Shield,
@@ -45,6 +47,7 @@ interface AuditLogRow {
 }
 
 export default function AdminDashboardPage() {
+  const { t } = useI18n();
   const [invitations, setInvitations] = useState<InvitationRow[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogRow[]>([]);
@@ -60,7 +63,7 @@ export default function AdminDashboardPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'STUDENT' | 'TUTOR' | 'ADMIN'>('STUDENT');
   const [inviteTtlHours, setInviteTtlHours] = useState(168);
-  const [createdBanner, setCreatedBanner] = useState<string | null>(null);
+  const [createdBanner, setCreatedBanner] = useState<LocalizedMessage | null>(null);
 
   const ADMIN_HEADERS = {
     'Content-Type': 'application/json',
@@ -107,13 +110,14 @@ export default function AdminDashboardPage() {
     });
     const data = await res.json();
     if (data.ok) {
-      setCreatedBanner(
-        `Created single-use invitation code ${data.code} for ${inviteEmail} (${inviteRole}) — Share link: ${data.inviteUrl}`
-      );
+      setCreatedBanner({
+        key: 'Created single-use invitation code {code} for {email} ({role}) — Share link: {url}',
+        values: { code: data.code, email: inviteEmail, role: inviteRole, url: data.inviteUrl },
+      });
       setInviteEmail('');
       loadAdminData();
     } else {
-      setCreatedBanner(`Error: ${data.error}`);
+      setCreatedBanner({ key: 'Error: {error}', values: { error: data.error } });
     }
   };
 
@@ -140,7 +144,7 @@ export default function AdminDashboardPage() {
     });
     const data = await res.json();
     if (data.ok) {
-      setCreatedBanner(`Rotated invitation! New code: ${data.code}`);
+      setCreatedBanner({ key: 'Rotated invitation! New code: {code}', values: { code: data.code } });
       loadAdminData();
     }
   };
@@ -189,23 +193,19 @@ export default function AdminDashboardPage() {
 
   return (
     <div
-      className="mx-auto max-w-6xl px-4 py-8 sm:px-8"
+      className="page-container"
       data-testid="admin-dashboard-page"
     >
       {/* Header */}
-      <div className="rounded-3xl bg-slate-900 p-6 text-white shadow-xl sm:p-8">
+      <div className="rounded-2xl bg-atelier-obsidian p-5 text-white sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-rose-500/20 px-3 py-1 text-xs font-extrabold text-rose-300">
+            <div className="eyebrow flex items-center gap-2 text-atelier-citron">
               <Shield className="h-3.5 w-3.5" />
-              <span>ADMIN GOVERNANCE · INVITE-ONLY ADMISSION & AUDIT LOGS</span>
+              <span>{t("Administration / Behind the studio")}</span>
             </div>
-            <h1 className="mt-2 text-2xl font-black sm:text-3xl">
-              Gauth Security, Invitations & Pluggable AI Control Center
-            </h1>
-            <p className="mt-1 text-xs text-slate-300">
-              Issue single-use/expiring invitation codes, manage RBAC roles, revoke compromised accounts, and switch the Pluggable AI Engine at runtime.
-            </p>
+            <h1 className="mt-5 text-3xl font-medium sm:text-4xl">{t("Keep the studio running.")}</h1>
+            <p className="mt-4 text-sm text-slate-300">{t("Manage invitations, member access, and the AI tools behind the workspace.")}</p>
           </div>
         </div>
 
@@ -218,8 +218,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-3">
               <Cpu className="h-6 w-6 text-indigo-400" />
               <div>
-                <div className="text-xs font-bold text-white">
-                  Pluggable AI Engine Mode:{' '}
+                <div className="text-xs font-bold text-white">{t("Pluggable AI Engine Mode:")}{' '}
                   <span
                     className="rounded bg-indigo-500 px-2 py-0.5 font-mono text-[11px]"
                     data-testid="active-ai-provider-badge"
@@ -247,11 +246,11 @@ export default function AdminDashboardPage() {
                   data-testid={`switch-ai-${m.id}-btn`}
                   className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
                     aiStatus.configuredMode === m.id
-                      ? 'bg-[#FF4B4B] text-white'
+                      ? 'bg-atelier-citron text-atelier-ink'
                       : 'bg-white/10 text-slate-200 hover:bg-white/20'
                   }`}
                 >
-                  {m.label}
+                  {t(m.label)}
                 </button>
               ))}
             </div>
@@ -261,7 +260,7 @@ export default function AdminDashboardPage() {
 
       {authError && (
         <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-bold text-rose-700">
-          {authError}
+          {t(authError)}
         </div>
       )}
 
@@ -271,7 +270,7 @@ export default function AdminDashboardPage() {
           data-testid="admin-created-invite-banner"
         >
           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-          <span>{createdBanner}</span>
+          <span>{t(createdBanner.key, createdBanner.values)}</span>
         </div>
       )}
 
@@ -279,14 +278,10 @@ export default function AdminDashboardPage() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:col-span-5">
           <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-            <PlusCircle className="h-4 w-4 text-[#FF4B4B]" />
-            Issue Single-Use Invitation Code
-          </h2>
+            <PlusCircle className="h-4 w-4 text-atelier-vermilion" />{t("Issue Single-Use Invitation Code")}</h2>
           <form onSubmit={handleCreateInvitation} className="mt-4 space-y-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700">
-                Recipient Email Address
-              </label>
+              <label className="block text-xs font-bold text-slate-700">{t("Recipient Email Address")}</label>
               <input
                 type="email"
                 required
@@ -294,37 +289,33 @@ export default function AdminDashboardPage() {
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="new.learner@university.edu"
                 data-testid="admin-invite-email-input"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs text-slate-900"
+                className="lumina-input mt-2 w-full px-3 py-3 text-sm"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700">
-                  Assigned Role
-                </label>
+                <label className="block text-xs font-bold text-slate-700">{t("Assigned Role")}</label>
                 <select
                   value={inviteRole}
                   onChange={(e) =>
                     setInviteRole(e.target.value as 'STUDENT' | 'TUTOR' | 'ADMIN')
                   }
                   data-testid="admin-invite-role-select"
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800"
+                  className="lumina-input mt-2 w-full px-3 py-3 text-sm"
                 >
-                  <option value="STUDENT">STUDENT</option>
-                  <option value="TUTOR">TUTOR</option>
-                  <option value="ADMIN">ADMIN</option>
+                  <option value="STUDENT">{t("STUDENT")}</option>
+                  <option value="TUTOR">{t("TUTOR")}</option>
+                  <option value="ADMIN">{t("ADMIN")}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700">
-                  Expiration (Hours)
-                </label>
+                <label className="block text-xs font-bold text-slate-700">{t("Expiration (Hours)")}</label>
                 <input
                   type="number"
                   value={inviteTtlHours}
                   onChange={(e) => setInviteTtlHours(Number(e.target.value))}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                  className="lumina-input mt-2 w-full px-3 py-3 text-sm"
                 />
               </div>
             </div>
@@ -332,19 +323,16 @@ export default function AdminDashboardPage() {
             <button
               type="submit"
               data-testid="admin-create-invite-btn"
-              className="w-full rounded-xl bg-[#FF4B4B] py-2.5 text-xs font-extrabold text-white shadow-xs hover:bg-rose-600"
-            >
-              Generate Single-Use Invite Code
-            </button>
+              className="primary-button w-full"
+            >{t("Generate Single-Use Invite Code")}</button>
           </form>
 
           <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/60 p-3.5 text-[11px] text-amber-900">
             <div className="flex items-center gap-1.5 font-extrabold">
               <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
-              <span>CLI-Only Bootstrap Security Policy</span>
+              <span>{t("CLI-Only Bootstrap Security Policy")}</span>
             </div>
-            <p className="mt-1 leading-relaxed">
-              No HTTP bootstrap admin endpoint exists. Initial root admins are provisioned solely via{' '}
+            <p className="mt-1 leading-relaxed">{t("No HTTP bootstrap admin endpoint exists. Initial root admins are provisioned solely via")}{' '}
               <code className="font-mono font-bold">npm run bootstrap:admin</code>.
             </p>
           </div>
@@ -353,19 +341,18 @@ export default function AdminDashboardPage() {
         {/* Invitations Table */}
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:col-span-7">
           <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-            <KeyRound className="h-4 w-4 text-indigo-600" />
-            Invitation Codes ({invitations.length})
+            <KeyRound className="h-4 w-4 text-indigo-600" />{t('Invitation Codes ({count})', { count: invitations.length })}
           </h2>
 
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100 text-[11px] uppercase text-slate-400">
-                  <th className="pb-2">Code</th>
-                  <th className="pb-2">Email</th>
-                  <th className="pb-2">Role</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2 text-right">Actions</th>
+                  <th className="pb-2">{t("Code")}</th>
+                  <th className="pb-2">{t("Email")}</th>
+                  <th className="pb-2">{t("Role")}</th>
+                  <th className="pb-2">{t("Status")}</th>
+                  <th className="pb-2 text-right">{t("Actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -377,7 +364,7 @@ export default function AdminDashboardPage() {
                     <td className="py-2.5 text-slate-600">{inv.email}</td>
                     <td className="py-2.5">
                       <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                        {inv.role}
+                        {t(inv.role)}
                       </span>
                     </td>
                     <td className="py-2.5">
@@ -390,7 +377,7 @@ export default function AdminDashboardPage() {
                               : 'bg-rose-50 text-rose-700'
                         }`}
                       >
-                        {inv.status} ({inv.usedCount}/{inv.maxUses})
+                        {t(inv.status)} ({inv.usedCount}/{inv.maxUses})
                       </span>
                     </td>
                     <td className="py-2.5 text-right">
@@ -400,7 +387,7 @@ export default function AdminDashboardPage() {
                             type="button"
                             onClick={() => handleRotateInvitation(inv.id)}
                             className="rounded-lg border border-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-50"
-                            title="Rotate Code"
+                            title={t("Rotate Code")}
                           >
                             <RefreshCw className="h-3 w-3" />
                           </button>
@@ -409,9 +396,7 @@ export default function AdminDashboardPage() {
                             onClick={() => handleRevokeInvitation(inv.id)}
                             data-testid={`revoke-invite-${inv.code}`}
                             className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-700 hover:bg-rose-100"
-                          >
-                            Revoke
-                          </button>
+                          >{t("Revoke")}</button>
                         </div>
                       )}
                     </td>
@@ -428,8 +413,7 @@ export default function AdminDashboardPage() {
         {/* Users Table */}
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:col-span-6">
           <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-            <Users className="h-4 w-4 text-emerald-600" />
-            Registered Accounts & RBAC Roles ({users.length})
+            <Users className="h-4 w-4 text-emerald-600" />{t('Registered Accounts & RBAC Roles ({count})', { count: users.length })}
           </h2>
           <div className="mt-4 space-y-2.5">
             {users.map((u) => (
@@ -452,11 +436,10 @@ export default function AdminDashboardPage() {
                           ? 'text-rose-600'
                           : 'text-emerald-600'
                       }`}
-                    >
-                      Status: {u.status}
+                    >{t("Status: ")}{t(u.status)}
                     </span>
                     <span>·</span>
-                    <span>Plan: {u.planTier}</span>
+                    <span>{t("Plan: ")}{t(u.planTier)}</span>
                   </div>
                 </div>
 
@@ -464,12 +447,12 @@ export default function AdminDashboardPage() {
                   <select
                     value={u.role}
                     onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                    aria-label={`Role for ${u.email}`}
+                    aria-label={t('Role for {email}', { email: u.email })}
                     className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700"
                   >
-                    <option value="STUDENT">STUDENT</option>
-                    <option value="TUTOR">TUTOR</option>
-                    <option value="ADMIN">ADMIN</option>
+                    <option value="STUDENT">{t("STUDENT")}</option>
+                    <option value="TUTOR">{t("TUTOR")}</option>
+                    <option value="ADMIN">{t("ADMIN")}</option>
                   </select>
 
                   {u.email !== 'admin@gauthmath.com' && (
@@ -484,7 +467,7 @@ export default function AdminDashboardPage() {
                       }`}
                     >
                       <Ban className="h-3 w-3" />
-                      <span>{u.status === 'REVOKED' ? 'Restore' : 'Revoke'}</span>
+                      <span>{u.status === 'REVOKED' ? t('Restore') : t('Revoke')}</span>
                     </button>
                   )}
                 </div>
@@ -496,8 +479,7 @@ export default function AdminDashboardPage() {
         {/* Immutable Security Audit Log Stream */}
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs lg:col-span-6">
           <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
-            <History className="h-4 w-4 text-amber-600" />
-            Security & Governance Audit Trail ({auditLogs.length})
+            <History className="h-4 w-4 text-amber-600" />{t('Security & Governance Audit Trail ({count})', { count: auditLogs.length })}
           </h2>
           <div
             className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1"
@@ -516,8 +498,7 @@ export default function AdminDashboardPage() {
                     {new Date(log.createdAt).toLocaleTimeString()}
                   </span>
                 </div>
-                <div className="mt-1 text-[11px] text-slate-600">
-                  Actor: <strong>{log.actorEmail}</strong> · Target:{' '}
+                <div className="mt-1 text-[11px] text-slate-600">{t("Actor: ")}<strong>{log.actorEmail}</strong>{t(" · Target:")}{' '}
                   {log.targetType}
                 </div>
               </div>

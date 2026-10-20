@@ -1,3 +1,6 @@
+'use client';
+
+import { useI18n } from '@/components/i18n/LanguageProvider';
 import React from 'react';
 import Link from 'next/link';
 import { BookOpen, ArrowRight, Sparkles } from 'lucide-react';
@@ -33,45 +36,42 @@ const BLOG_ARTICLES = [
 ];
 
 export default function BlogPage() {
+  const { t } = useI18n();
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8" data-testid="blog-page">
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xs">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1 text-xs font-extrabold text-[#FF4B4B]">
+    <div className="page-container" data-testid="blog-page">
+      <div className="page-heading">
+        <span className="eyebrow inline-flex items-center gap-2 text-atelier-vermilion">
           <Sparkles className="h-3.5 w-3.5" />
-          <span>GAUTH EDITORIAL & STUDY TIPS BLOG</span>
+          <span>{t("The journal / Notes on learning")}</span>
         </span>
-        <h1 className="mt-3 text-3xl font-black text-slate-900">
-          Insights on AI Learning, Exam Prep & STEM Mastery
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Research articles, AP/SAT study guides, and deep dives from Gauth’s AI engineers and Ph.D. tutors.
-        </p>
+        <h1>{t("Stay a little curious.")}</h1>
+        <p className="mt-4 text-atelier-muted">{t("Fresh perspectives on how we learn, work through problems, and make ideas click.")}</p>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
+      <div className="divide-y divide-atelier-border border-t border-atelier-border">
         {BLOG_ARTICLES.map((art) => (
           <div
             key={art.slug}
-            className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 shadow-xs"
+            className="grid grid-cols-1 gap-5 py-6 md:grid-cols-[1fr_auto] md:items-center"
           >
             <div>
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
-                <span className="text-[#FF4B4B]">{art.category}</span>
+              <div className="flex max-w-xl items-center justify-between text-xs text-atelier-muted">
+                <span className="text-atelier-vermilion">{art.category}</span>
                 <span>{art.date}</span>
               </div>
-              <h2 className="mt-3 text-base font-extrabold text-slate-900">
+              <h2 className="mt-4 max-w-2xl text-2xl font-medium text-atelier-ink">
                 {art.title}
               </h2>
-              <p className="mt-2 text-xs leading-relaxed text-slate-600">
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-atelier-muted">
                 {art.excerpt}
               </p>
             </div>
             <Link
               href={art.link}
-              className="mt-5 inline-flex items-center gap-1.5 text-xs font-bold text-[#FF4B4B] hover:underline"
+              className="inline-flex items-center gap-2 text-sm font-medium text-atelier-vermilion hover:underline"
             >
               <BookOpen className="h-3.5 w-3.5" />
-              <span>Try Interactive Feature</span>
+              <span>{t("Try Interactive Feature")}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>

@@ -8,6 +8,7 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({
       ok: true,
+      user: null,
       subscription: {
         planTier: 'FREE',
         billingCycle: 'yearly',
@@ -37,14 +38,6 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getActiveOrDemoUser();
-  if (!user) {
-    return NextResponse.json(
-      { ok: false, error: 'Sign in required.' },
-      { status: 401 }
-    );
-  }
-
   const body = await req.json();
   const planTier = body.planTier === 'FREE' ? 'FREE' : 'PLUS';
   const billingCycle = ['monthly', 'quarterly', 'yearly'].includes(
@@ -52,6 +45,20 @@ export async function POST(req: NextRequest) {
   )
     ? body.billingCycle
     : 'yearly';
+
+  const user = await getActiveOrDemoUser();
+  if (!user) {
+    return NextResponse.json({
+      ok: true,
+      subscription: {
+        planTier,
+        billingCycle,
+        freeQueriesRemaining: planTier === 'PLUS' ? 9999 : 3,
+        aiProRemaining: planTier === 'PLUS' ? 20 : 1,
+        courseCreditsRemaining: planTier === 'PLUS' ? 999 : 3,
+      },
+    });
+  }
 
   const updated = await prisma.user.update({
     where: { id: user.id },

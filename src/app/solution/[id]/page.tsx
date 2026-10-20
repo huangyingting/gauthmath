@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import { useI18n } from '@/components/i18n/LanguageProvider';
+import React, { useState, useEffect, useRef, use } from 'react';
 import Link from 'next/link';
 import {
-  CheckCircle2,
   Bookmark,
   ThumbsUp,
   ThumbsDown,
@@ -17,6 +17,12 @@ import {
 } from 'lucide-react';
 import { FunctionGraphSvg } from '@/components/math/FunctionGraphSvg';
 import { MathFormula } from '@/components/ui/MathFormula';
+import { RichText } from '@/components/ui/RichText';
+import { WorkingIndicator } from '@/components/ui/WorkingIndicator';
+import { VoiceInputButton, ReadAloudButton } from '@/components/ui/VoiceControls';
+import { VerificationEvidence } from '@/components/ui/VerificationEvidence';
+import type { VerificationStatus } from '@/lib/math-engine/solver';
+import type { TutorMode } from '@/lib/tutoring';
 import type { FunctionGraphData } from '@/lib/math-engine/grapher';
 
 interface SolutionStep {
@@ -37,6 +43,8 @@ interface QuestionDetail {
   quickTip: string;
   providerUsed: string;
   accuracyScore: number;
+  verificationStatus: VerificationStatus;
+  verificationDetail: string;
   isBookmarked: boolean;
   helpfulCount: number;
   unhelpfulCount: number;
@@ -58,6 +66,7 @@ export default function SolutionDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t, locale } = useI18n();
   const { id } = use(params);
   const [question, setQuestion] = useState<QuestionDetail | null>(null);
   const [related, setRelated] = useState<
@@ -68,10 +77,24 @@ export default function SolutionDetailPage({
   const [chatInput, setChatInput] = useState('');
   const [sendingChat, setSendingChat] = useState(false);
   const [escalating, setEscalating] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [tutorMode, setTutorMode] = useState<TutorMode>('explain');
+  const [selectedStep, setSelectedStep] = useState<number | undefined>();
+  const [showSolution, setShowSolution] = useState(true);
+  const request = useRef<AbortController | null>(null);
+  const lastRequest = useRef<{ text: string; step?: number; mode: TutorMode } | null>(null);
+  const transcript = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/questions/${id}`)
+    const controller = new AbortController();
+    setChatError(null);
+    setSendingChat(false);
+    setPendingMessage(null);
+    setSelectedStep(undefined);
+    setChatInput('');
+    fetch(`/api/questions/${id}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data?.ok && data.question) {
@@ -79,8 +102,13 @@ export default function SolutionDetailPage({
           setRelated(data.relatedQuestions || []);
         }
       })
-      .finally(() => setLoading(false));
+      .catch(() => { if (!controller.signal.aborted) setChatError('The solution could not be loaded. Please reload the page.'); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => { controller.abort(); request.current?.abort(); request.current = null; };
   }, [id]);
+  useEffect(() => {
+    if (transcript.current) transcript.current.scrollTop = transcript.current.scrollHeight;
+  }, [question?.followUpMessages, pendingMessage]);
 
   const handleBookmark = async () => {
     if (!question) return;
@@ -118,26 +146,36 @@ export default function SolutionDetailPage({
     }
   };
 
-  const handleSendFollowUp = async (textOverride?: string) => {
-    if (!question) return;
+  const handleSendFollowUp = async (textOverride?: string, step = selectedStep, mode = tutorMode) => {
+    if (!question || request.current) return;
     const msg = (textOverride ?? chatInput).trim();
     if (!msg) return;
     setSendingChat(true);
-    setChatInput('');
+    setChatError(null);
+    setPendingMessage(msg);
+    lastRequest.current = { text: msg, step, mode };
+    const controller = new AbortController();
+    request.current = controller;
     try {
       const res = await fetch(`/api/questions/${question.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userMessage: msg }),
+        body: JSON.stringify({ userMessage: msg, mode, stepNumber: step, locale }),
+        signal: controller.signal,
       });
       const data = await res.json();
-      if (data.ok && Array.isArray(data.followUpMessages)) {
+      if (!res.ok || !data.ok || !Array.isArray(data.followUpMessages)) throw new Error(data.error || 'The tutor could not reply. Please try again.');
+      if (!controller.signal.aborted) {
         setQuestion((prev) =>
           prev ? { ...prev, followUpMessages: data.followUpMessages } : prev
         );
+        setChatInput('');
       }
+    } catch (failure) {
+      if (!controller.signal.aborted) setChatError(failure instanceof TypeError ? 'Could not reach the tutor. Please try again.' : failure instanceof Error ? failure.message : 'The tutor could not reply. Please try again.');
     } finally {
-      setSendingChat(false);
+      if (!controller.signal.aborted) { setSendingChat(false); setPendingMessage(null); }
+      if (request.current === controller) request.current = null;
     }
   };
 
@@ -170,40 +208,37 @@ export default function SolutionDetailPage({
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-5xl p-8 text-center text-sm text-slate-500">
-        Loading verified step-by-step solution...
-      </div>
+      <div className="mx-auto max-w-5xl p-8 text-center text-sm text-slate-500">{t("Loading verified step-by-step solution...")}</div>
     );
   }
 
   if (!question) {
     return (
       <div className="mx-auto max-w-4xl p-8 text-center">
-        <h1 className="text-xl font-bold text-slate-900">Solution Not Found</h1>
+        {chatError && <p className="mb-4 text-sm text-rose-800" role="alert">{t(chatError)}</p>}
+        <h1 className="text-xl font-bold text-slate-900">{t("Solution Not Found")}</h1>
         <Link
           href="/"
-          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#FF4B4B] px-4 py-2 text-xs font-bold text-white"
+          className="primary-button mt-4"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to AI Homework Helper
-        </Link>
+          <ArrowLeft className="h-4 w-4" />{t("Back to AI Homework Helper")}</Link>
       </div>
     );
   }
 
   return (
     <div
-      className="mx-auto max-w-6xl px-4 py-6 sm:px-8"
+      className="page-container"
       data-testid="solution-detail-page"
     >
       {/* Top Breadcrumb */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#FF4B4B]"
+          className="inline-flex items-center gap-2 text-sm text-atelier-muted hover:text-atelier-vermilion"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Ask Another Question</span>
+          <span>{t("Ask Another Question")}</span>
         </Link>
 
         <div className="flex items-center gap-2">
@@ -218,7 +253,7 @@ export default function SolutionDetailPage({
             }`}
           >
             <Bookmark className="h-3.5 w-3.5" />
-            <span>{question.isBookmarked ? 'Bookmarked' : 'Bookmark'}</span>
+            <span>{question.isBookmarked ? t('Bookmarked') : t('Bookmark')}</span>
           </button>
 
           <button
@@ -231,100 +266,88 @@ export default function SolutionDetailPage({
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
           >
             <Copy className="h-3.5 w-3.5" />
-            <span>{copied ? 'Copied!' : 'Copy Answer'}</span>
+            <span>{copied ? t('Copied!') : t('Copy Answer')}</span>
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left 2 Columns: Problem, Steps, Graph & AI Follow-up */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           {/* Question Card */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
+          <div className="paper-panel p-5 sm:p-6">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-extrabold text-[#FF4B4B]">
-                {question.subject}
+              <span className="text-xs font-semibold text-atelier-vermilion">
+                {t(question.subject)}
               </span>
-              <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+              <span className="px-2 py-1 text-xs text-atelier-muted">
                 {question.topic}
-              </span>
-              <span
-                className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
-                  question.accuracyScore >= 90
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : question.accuracyScore > 0
-                      ? 'bg-amber-50 text-amber-700'
-                      : 'bg-rose-50 text-rose-700'
-                }`}
-              >
-                {question.accuracyScore >= 90
-                  ? `${question.accuracyScore}% Verified Accuracy`
-                  : question.accuracyScore > 0
-                    ? `${question.accuracyScore}% Numerical Approximation`
-                    : 'Unsupported / Needs Clarification'}
               </span>
             </div>
 
             <h1
-              className="mt-4 font-mono text-xl font-black text-slate-900 sm:text-2xl"
+              className="mt-6 break-words text-2xl font-semibold leading-snug text-atelier-ink sm:text-3xl"
               data-testid="solution-prompt-heading"
             >
               {question.promptText}
             </h1>
+            <VerificationEvidence status={question.verificationStatus} detail={question.verificationDetail} />
+            <button type="button" className="text-button mt-3" onClick={() => setShowSolution(!showSolution)} aria-expanded={showSolution}>
+              {t(showSolution ? 'Hide the worked solution' : 'Reveal the worked solution')}
+            </button>
 
             {/* Final Answer Highlight Box */}
-            <div className="mt-5 rounded-2xl border-2 border-emerald-200 bg-emerald-50/70 p-4">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-emerald-800">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  Final Verified Answer
-                </span>
-                <span className="text-[11px] font-semibold text-emerald-700">
-                  Engine: {question.providerUsed}
+            {showSolution && <>
+            <div className="solution-answer">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="eyebrow flex items-center gap-1.5 text-atelier-jade">
+                  {t("The answer")}</span>
+                <span className="text-[11px] font-semibold text-emerald-700">{t("Engine: ")}{question.providerUsed}
                 </span>
               </div>
+              <ReadAloudButton text={question.answerSummary} />
               <div
-                className="mt-2 font-mono text-xl font-black text-slate-900"
+                className="mt-2 text-xl font-semibold text-slate-900"
                 data-testid="solution-final-answer"
               >
-                {question.answerSummary}
+                <RichText text={question.answerSummary} />
               </div>
             </div>
 
             {/* Step-by-Step Cards */}
-            <div className="mt-6 space-y-4">
-              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-500">
-                Step-by-Step Explanation ({question.steps.length} Steps)
-              </h2>
+            <div className="mt-6 space-y-5">
+              <h2 className="eyebrow text-atelier-muted">{t('Step-by-Step Explanation ({count} Steps)', { count: question.steps.length })}</h2>
               {question.steps.map((step) => (
                 <div
                   key={step.number}
                   data-testid={`solution-step-${step.number}`}
-                  className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-4"
+                  className="border-l border-atelier-border pl-5"
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF4B4B] text-xs font-extrabold text-white">
+                    <span className="text-xs text-atelier-muted">
                       {step.number}
                     </span>
-                    <h3 className="text-sm font-bold text-slate-900">
+                    <h3 className="text-base font-semibold text-atelier-ink">
                       {step.title}
                     </h3>
                   </div>
-                  <div className="mt-2.5 overflow-x-auto rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 font-mono text-sm font-bold text-indigo-950">
-                    <MathFormula latex={step.latex} />
+                  <div className="mt-3 min-w-0 rounded-md bg-atelier-canvas px-3 py-2 text-base text-atelier-ink">
+                    <MathFormula latex={step.latex} display />
                   </div>
-                  <p className="mt-2 text-xs leading-relaxed text-slate-600">
-                    {step.explanation}
-                  </p>
+                  <RichText text={step.explanation} className="mt-3 text-sm leading-7 text-atelier-muted" />
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button type="button" disabled={sendingChat} data-testid={`explain-step-${step.number}`} className="text-button"
+                      onClick={() => { setSelectedStep(step.number); void handleSendFollowUp(t('Explain this step in simpler terms.'), step.number, 'explain'); }}>{t('Explain this step')}</button>
+                    <ReadAloudButton text={`${step.title}. ${step.explanation}`} />
+                  </div>
                 </div>
               ))}
             </div>
+            </>}
 
             {/* Helpful / Unhelpful Feedback Row */}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-              <div className="text-xs font-semibold text-slate-500">
-                Verified by <strong>{question.tutorName}</strong>
-              </div>
+              <div className="text-xs text-atelier-muted">{t('Did this help you understand?')}</div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -333,7 +356,7 @@ export default function SolutionDetailPage({
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
                 >
                   <ThumbsUp className="h-3.5 w-3.5" />
-                  <span>Helpful ({question.helpfulCount})</span>
+                  <span>{t('Helpful ({count})', { count: question.helpfulCount })}</span>
                 </button>
                 <button
                   type="button"
@@ -348,33 +371,29 @@ export default function SolutionDetailPage({
           </div>
 
           {/* 2D Function Graph Card */}
-          {question.graphConfig && (
+          {showSolution && question.graphConfig && (
             <FunctionGraphSvg graph={question.graphConfig} />
           )}
 
           {/* Interactive Follow-Up Tutor Chat */}
           <div
-            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs"
+            className="paper-panel p-5 sm:p-6"
             data-testid="followup-tutor-chat"
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 text-white">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-atelier-lilac text-atelier-vermilion">
                   <MessageSquare className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-extrabold text-slate-900">
-                    Ask Gauth Super Tutor a Follow-Up Question
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Powered by Pluggable Copilot SDK / Azure OpenAI + Symbolic Verifier
-                  </p>
+                  <h3 className="text-lg font-semibold text-atelier-ink">{t("Keep the conversation going.")}</h3>
+                  <p className="text-[11px] text-slate-500">{t("Ask about a step, or try another way of thinking.")}</p>
                 </div>
               </div>
             </div>
 
             {/* Chat History */}
-            <div className="mt-4 max-h-72 space-y-3 overflow-y-auto pr-1">
+            <div ref={transcript} className="mt-4 max-h-96 space-y-3 overflow-y-auto pr-1" aria-busy={sendingChat}>
               {question.followUpMessages.map((m, idx) => (
                 <div
                   key={idx}
@@ -388,12 +407,23 @@ export default function SolutionDetailPage({
                 >
                   <div className="mb-1 font-bold text-[10px] uppercase tracking-wider opacity-75">
                     {m.author ||
-                      (m.role === 'user' ? 'You' : 'Gauth AI Super Tutor')}
+                      (m.role === 'user' ? t('You') : t('Gauth AI Super Tutor'))}
                   </div>
-                  <div className="whitespace-pre-line">{m.text}</div>
+                  <RichText text={m.text} />
+                  {m.role !== 'user' && <ReadAloudButton text={m.text} />}
                 </div>
               ))}
+              {pendingMessage && <><div className="tutor-message tutor-message-user"><RichText text={pendingMessage} /></div><WorkingIndicator /></>}
             </div>
+            {chatError && <div className="tutor-error" role="alert"><span>{t(chatError)}</span><button type="button" className="text-button"
+              onClick={() => { const last = lastRequest.current; if (last) void handleSendFollowUp(last.text, last.step, last.mode); }}>{t('Retry')}</button></div>}
+            <div className="filter-tabs mt-4" aria-label={t('How should the tutor help?')}>
+              {(['hint', 'explain', 'check'] as const).map(mode => <button key={mode} type="button" disabled={sendingChat} aria-pressed={tutorMode === mode}
+                data-testid={`tutor-mode-${mode}`} onClick={() => { setTutorMode(mode); if (mode === 'hint') setShowSolution(false); }}>
+                {t(mode === 'hint' ? 'Hint first' : mode === 'check' ? 'Check my attempt' : 'Explain')}
+              </button>)}
+            </div>
+            {selectedStep !== undefined && <button type="button" className="text-button mt-2" disabled={sendingChat} onClick={() => setSelectedStep(undefined)}>{t('Focused on step {number} · Clear', { number: selectedStep })}</button>}
 
             {/* Quick Suggestion Chips */}
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -405,23 +435,27 @@ export default function SolutionDetailPage({
                 <button
                   key={i}
                   type="button"
+                  disabled={sendingChat}
                   onClick={() => handleSendFollowUp(chip)}
                   className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
                 >
-                  {chip}
+                  {t(chip)}
                 </button>
               ))}
             </div>
 
             {/* Chat Input */}
-            <div className="mt-3 flex items-center gap-2">
+            <div className="lumina-composer-well mt-5 flex flex-wrap items-center gap-2 p-2">
               <input
                 type="text"
+                aria-label={t("Your follow-up question")}
                 value={chatInput}
+                disabled={sendingChat}
+                maxLength={2000}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask why a step works or request another method..."
+                placeholder={t("Ask why a step works or request another method...")}
                 data-testid="followup-chat-input"
-                className="flex-1 rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs text-slate-900 focus:border-indigo-500 focus:outline-hidden"
+                className="min-w-0 flex-1 px-2 py-3 text-sm"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -429,108 +463,96 @@ export default function SolutionDetailPage({
                   }
                 }}
               />
+              <VoiceInputButton disabled={sendingChat} onTranscript={text => setChatInput(previous => `${previous}${previous ? ' ' : ''}${text}`.slice(0, 2000))} />
               <button
                 type="button"
                 onClick={() => handleSendFollowUp()}
-                disabled={sendingChat}
+                disabled={sendingChat || !chatInput.trim()}
                 data-testid="followup-chat-send-btn"
-                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="primary-button"
               >
                 <Send className="h-3.5 w-3.5" />
-                <span>{sendingChat ? 'Sending...' : 'Ask Tutor'}</span>
+                <span>{sendingChat ? t('Sending...') : t('Ask Tutor')}</span>
               </button>
             </div>
+            <p className="voice-disclosure">{t('Voice uses Azure Speech. Tap the microphone to record up to 30 seconds; audio is not stored by Gauth.')}</p>
           </div>
         </div>
 
         {/* Right Column: Live Human Expert Escalation, Key Concepts & Related Questions */}
-        <div className="space-y-6">
+        <aside className="min-w-0 space-y-6">
           {/* 24/7 Live Human Verified Expert Tutor Escalation Card */}
-          <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-xs">
+          <div className="rounded-xl bg-atelier-lilac p-6">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500 text-slate-950">
+              <div className="text-atelier-vermilion">
                 <UserCheck className="h-5 w-5" />
               </div>
               <div>
-                <span className="rounded-full bg-amber-200/80 px-2 py-0.5 text-[10px] font-extrabold text-amber-950">
-                  24/7 HUMAN EXPERTS ONLINE
-                </span>
-                <h3 className="mt-0.5 text-sm font-extrabold text-slate-900">
-                  Need a Live Human Tutor?
-                </h3>
+                <span className="eyebrow text-atelier-vermilion">{t("Another perspective")}</span>
+                <h3 className="mt-2 text-lg font-semibold text-atelier-ink">{t("A little extra guidance?")}</h3>
               </div>
             </div>
-            <p className="mt-2.5 text-xs leading-relaxed text-slate-600">
-              Connect with one of 50,000+ verified Ph.D. & Master’s STEM tutors for personalized whiteboard annotation.
-            </p>
+            <p className="mt-4 text-sm leading-7 text-atelier-muted">{t("Request help with this problem and continue the discussion in your tutor conversation.")}</p>
             <button
               type="button"
               onClick={handleEscalateLiveTutor}
-              disabled={escalating || question.tutorEscalationStatus === 'ANSWERED'}
+              disabled={escalating || ['VERIFIED_BY_TUTOR', 'QUEUED_FOR_TUTOR'].includes(question.tutorEscalationStatus)}
               data-testid="escalate-live-tutor-btn"
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-extrabold text-white transition hover:bg-slate-800 disabled:bg-emerald-600"
+              className="secondary-button mt-5 w-full disabled:opacity-50"
             >
               <Sparkles className="h-3.5 w-3.5" />
               <span>
-                {question.tutorEscalationStatus === 'ANSWERED'
-                  ? 'Live Expert Connected (See Chat)'
+                {question.tutorEscalationStatus === 'VERIFIED_BY_TUTOR'
+                  ? t('Reviewed by a tutor')
+                  : question.tutorEscalationStatus === 'QUEUED_FOR_TUTOR' ? t('Review requested')
                   : escalating
-                    ? 'Connecting Live Tutor...'
-                    : 'Connect Live Verified Expert'}
+                    ? t('Requesting review...')
+                    : t('Request a tutor review')}
               </span>
             </button>
           </div>
 
           {/* Quick Tip & Key Concepts */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
-            <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-amber-600">
+          {showSolution && <details className="border-b border-atelier-border pb-6">
+            <summary className="flex items-center gap-2 text-sm font-semibold">
               <Lightbulb className="h-4 w-4" />
-              <span>Key Concept & Quick Tip</span>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-slate-700">
-              {question.quickTip}
-            </p>
+              <span>{t("Key Concept & Quick Tip")}</span>
+            </summary>
+            <RichText text={question.quickTip} className="mt-5 text-sm leading-7 text-atelier-muted" />
             {question.keyConcepts.map((kc, i) => (
               <div
                 key={i}
-                className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3"
+                className="mt-5 border-t border-atelier-border pt-4"
               >
                 <div className="text-xs font-bold text-slate-900">
                   {kc.title}
                 </div>
-                <div className="mt-1 font-mono text-xs font-semibold text-indigo-700">
-                  {kc.formula}
+                <div className="mt-2 text-base text-atelier-vermilion">
+                  <MathFormula latex={kc.formula} display />
                 </div>
-                <div className="mt-1 text-[11px] text-slate-500">
-                  {kc.description}
-                </div>
+                <RichText text={kc.description} className="mt-1 text-[11px] text-slate-500" />
               </div>
             ))}
-          </div>
+          </details>}
 
           {/* Related Study Bank Questions */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
-            <h3 className="text-sm font-extrabold text-slate-900">
-              Similar {question.subject} Questions
-            </h3>
+          <details className="border-b border-atelier-border pb-6">
+            <summary className="text-sm font-semibold">{t('Similar {subject} Questions', { subject: t(question.subject) })}</summary>
             <div className="mt-3 space-y-2.5">
               {related.map((rel) => (
                 <Link
                   key={rel.id}
                   href={`/solution/${rel.slug || rel.id}`}
-                  className="block rounded-2xl border border-slate-100 bg-slate-50/70 p-3 transition hover:border-rose-300 hover:bg-rose-50/40"
+                  className="block border-b border-atelier-border py-4 transition hover:text-atelier-vermilion"
                 >
                   <div className="font-mono text-xs font-bold text-slate-900">
                     {rel.promptText}
                   </div>
-                  <div className="mt-1 truncate font-mono text-[11px] text-slate-500">
-                    Ans: {rel.answerSummary}
-                  </div>
                 </Link>
               ))}
             </div>
-          </div>
-        </div>
+          </details>
+        </aside>
       </div>
     </div>
   );

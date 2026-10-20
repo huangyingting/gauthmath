@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { chatFollowUpWithTutor } from '@/lib/ai/provider';
 import { getActiveSessionUser } from '@/lib/server-session';
+import { getQuestionVerification, type TutorMode } from '@/lib/tutoring';
 
 export async function GET(
   _req: NextRequest,
@@ -34,6 +35,7 @@ export async function GET(
     ok: true,
     question: {
       ...question,
+      ...getQuestionVerification(question),
       steps: JSON.parse(question.stepsJson || '[]'),
       keyConcepts: (() => {
         try {
@@ -115,7 +117,7 @@ export async function PATCH(
           : {
               role: 'tutor',
               author: 'Gauth Tutor Escalation Queue (Automated Pre-Check)',
-              text: `Ticket queued for an authenticated human tutor. Automated Symbolic Pre-Check for "${fresh.promptText}": ${fresh.answerSummary} (${fresh.accuracyScore >= 95 ? 'residual verified' : 'awaiting manual review'}). Share which step you want annotated!`,
+              text: `Ticket queued for an authenticated human tutor; this is not a completed human review. Automated check: ${getQuestionVerification(fresh).verificationStatus}. Share which step you want annotated!`,
               timestamp: new Date().toISOString(),
             }
       );
@@ -128,7 +130,7 @@ export async function PATCH(
             : 'QUEUED_FOR_TUTOR',
           tutorName: isAuthenticatedTutor
             ? `${sessionUser.name || sessionUser.email} (Verified Tutor)`
-            : 'Escalation Queued · Symbolic Pre-Check Complete',
+            : 'Review Requested',
           followUpMessagesJson: JSON.stringify(currentMessages),
         },
       });
@@ -147,10 +149,24 @@ export async function PATCH(
   // 4. Interactive Follow-up Tutor Chat (transactional append to prevent lost concurrent turns)
   if (body.userMessage) {
     const userMessage = String(body.userMessage).trim();
+    if (!userMessage || userMessage.length > 2000 || (body.mode !== undefined && !['explain', 'hint', 'check'].includes(body.mode))
+      || (body.locale !== undefined && !['en', 'zh'].includes(body.locale))) {
+      return NextResponse.json({ ok: false, error: 'Enter a message of up to 2,000 characters and choose a valid tutor mode.' }, { status: 400 });
+    }
+    const steps = JSON.parse(question.stepsJson || '[]');
+    if (body.stepNumber !== undefined && (!Number.isInteger(body.stepNumber) || !steps.some((step: { number: number }) => step.number === body.stepNumber))) {
+      return NextResponse.json({ ok: false, error: 'Choose an existing solution step.' }, { status: 400 });
+    }
+    const history = JSON.parse(question.followUpMessagesJson || '[]');
     const tutorReply = await chatFollowUpWithTutor({
       questionPrompt: question.promptText,
       answerSummary: question.answerSummary,
       userMessage,
+      locale: body.locale,
+      mode: body.mode as TutorMode | undefined,
+      stepNumber: body.stepNumber,
+      steps,
+      history: history.filter((turn: { role: string; text?: unknown }) => ['user', 'assistant'].includes(turn.role) && typeof turn.text === 'string').slice(-8),
     });
 
     const { updated, messages } = await prisma.$transaction(async (tx) => {

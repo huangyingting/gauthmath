@@ -1,10 +1,13 @@
 'use client';
 
+import { useI18n } from '@/components/i18n/LanguageProvider';
+import { RichText } from '@/components/ui/RichText';
+import { ContentTutor } from '@/components/ui/ContentTutor';
+import { ReadAloudButton } from '@/components/ui/VoiceControls';
 import React, { useState, useEffect } from 'react';
 import {
   Compass,
   Eye,
-  BookOpen,
   CheckCircle2,
   Sparkles,
   Award,
@@ -37,6 +40,7 @@ interface AtlasStoryItem {
 }
 
 export default function AtlasPage() {
+  const { t } = useI18n();
   const [stories, setStories] = useState<AtlasStoryItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [activeStory, setActiveStory] = useState<AtlasStoryItem | null>(null);
@@ -64,46 +68,37 @@ export default function AtlasPage() {
 
   return (
     <div
-      className="mx-auto max-w-6xl px-4 py-8 sm:px-8"
+      className="page-container"
       data-testid="atlas-page"
     >
       {/* Hero */}
-      <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-6 text-white shadow-xl sm:p-8">
-        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-indigo-300">
+      <div className="page-heading">
+        <div className="eyebrow flex items-center gap-2 text-atelier-vermilion">
           <Compass className="h-3.5 w-3.5" />
-          <span>GAUTH ATLAS · INTERACTIVE VISUAL KNOWLEDGE ENCYCLOPEDIA</span>
+          <span>{t("Atlas / Follow a bigger idea")}</span>
         </div>
-        <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-4xl">
-          See How Complex Science & History Actually Work
-        </h1>
-        <p className="mt-2 max-w-2xl text-xs text-slate-300 sm:text-sm">
-          Explore multi-chapter visual investigations with quantitative callouts and interactive mastery quizzes.
-        </p>
+        <h1>{t("A world of “oh, now I see.”")}</h1>
+        <p className="mt-4 text-atelier-muted">{t("Take the scenic route through science, history, and the ideas that connect them.")}</p>
 
         {/* Category Filter Pills */}
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="filter-tabs mt-7">
           {categories.map((cat) => (
             <button
               key={cat}
               type="button"
               onClick={() => setSelectedCategory(cat)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-                selectedCategory === cat
-                  ? 'bg-[#FF4B4B] text-white'
-                  : 'bg-white/10 text-slate-200 hover:bg-white/20'
-              }`}
+              aria-pressed={selectedCategory === cat}
             >
-              {cat}
+              {t(cat)}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Left 4 Columns: Story Cards List */}
         <div className="space-y-3 lg:col-span-4">
-          <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
-            Featured Visual Investigations ({filtered.length})
+          <h2 className="eyebrow mb-5 text-atelier-muted">          {t('Pick a thread ({count})', { count: filtered.length })}
           </h2>
           {filtered.map((story) => {
             const isSelected = activeStory?.slug === story.slug;
@@ -116,25 +111,26 @@ export default function AtlasPage() {
                   setSelectedQuizOption(null);
                 }}
                 data-testid={`atlas-story-card-${story.slug}`}
-                className={`w-full rounded-2xl border p-4 text-left transition ${
+                aria-pressed={isSelected}
+                className={`w-full rounded-lg p-5 text-left transition ${
                   isSelected
-                    ? 'border-indigo-500 bg-indigo-50/50 shadow-md'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
+                    ? 'bg-atelier-lilac'
+                    : 'hover:bg-atelier-subtle'
                 }`}
               >
                 <div className="flex items-center justify-between text-[11px] font-bold">
-                  <span className="rounded-md bg-indigo-100 px-2 py-0.5 text-indigo-700">
-                    {story.category}
+                  <span className="text-atelier-vermilion">
+                    {t(story.category)}
                   </span>
                   <span className="flex items-center gap-1 text-slate-400">
                     <Eye className="h-3 w-3" />
                     {story.viewsCount.toLocaleString()}
                   </span>
                 </div>
-                <h3 className="mt-2 text-sm font-extrabold text-slate-900">
+                <h3 className="mt-3 text-base font-semibold text-atelier-ink">
                   {story.title}
                 </h3>
-                <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                <p className="mt-2 line-clamp-2 text-sm text-atelier-muted">
                   {story.summary}
                 </p>
               </button>
@@ -143,52 +139,51 @@ export default function AtlasPage() {
         </div>
 
         {/* Right 8 Columns: Interactive Story Reader & Quiz */}
-        <div className="lg:col-span-8">
+        <div className="min-w-0 lg:col-span-8">
           {activeStory && (
             <div
-              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+              className="paper-panel overflow-hidden"
               data-testid="atlas-active-reader"
             >
               {/* Story Visual Header */}
               <div
-                className={`bg-gradient-to-r ${activeStory.visualTheme || 'from-indigo-600 to-purple-600'} p-6 text-white sm:p-8`}
+                className="bg-atelier-lilac p-5 text-atelier-ink sm:p-6"
               >
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-white/80">
-                  <span>{activeStory.category} · Visual Deep Dive</span>
-                  <span>{activeStory.viewsCount.toLocaleString()} Learners</span>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-atelier-muted">
+                  <span>{t(activeStory.category)}{t(" · Visual Deep Dive")}</span>
+                  <span>{activeStory.viewsCount.toLocaleString()}{t(" Learners")}</span>
                 </div>
                 <h2
-                  className="mt-2 text-xl font-black sm:text-2xl"
+                  className="mt-5 text-2xl font-semibold sm:text-3xl"
                   data-testid="atlas-reader-title"
                 >
                   {activeStory.title}
                 </h2>
-                <p className="mt-2 text-xs leading-relaxed text-white/90 sm:text-sm">
+                <p className="mt-4 text-sm leading-relaxed text-atelier-muted">
                   {activeStory.summary}
                 </p>
+                <ReadAloudButton text={`${activeStory.title}. ${activeStory.summary}`} />
               </div>
 
               {/* Chapters Breakdown */}
-              <div className="space-y-5 p-6 sm:p-8">
+              <div className="space-y-6 p-5 sm:p-6">
                 {activeStory.chapters.map((ch) => (
                   <div
                     key={ch.number}
-                    className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-5"
+                    className="border-b border-atelier-border pb-6"
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-slate-900 text-xs font-extrabold text-white">
+                      <span className="mr-2 text-xs text-atelier-muted">
                         0{ch.number}
                       </span>
-                      <h3 className="text-base font-extrabold text-slate-900">
+                      <h3 className="text-lg font-semibold text-atelier-ink">
                         {ch.heading}
                       </h3>
                     </div>
-                    <p className="mt-3 text-xs leading-relaxed text-slate-700 sm:text-sm">
-                      {ch.body}
-                    </p>
-                    <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-1.5 text-xs font-extrabold text-indigo-800">
-                      <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                      <span>Key Metric: {ch.statCallout}</span>
+                    <RichText text={ch.body} className="mt-4 text-base leading-7 text-atelier-muted" />
+                    <div className="mt-5 inline-flex items-center gap-2 rounded-md bg-atelier-subtle px-3.5 py-2 text-xs font-medium text-atelier-ink">
+                      <Sparkles className="h-3.5 w-3.5 text-atelier-vermilion" />
+                      <span>{t("Key Metric: ")}{ch.statCallout}</span>
                     </div>
                   </div>
                 ))}
@@ -196,12 +191,12 @@ export default function AtlasPage() {
                 {/* Interactive Mastery Quiz */}
                 {activeStory.quiz && activeStory.quiz.question && (
                   <div
-                    className="mt-6 rounded-3xl border-2 border-indigo-100 bg-indigo-50/40 p-6"
+                    className="rounded-xl bg-atelier-lilac p-6"
                     data-testid="atlas-interactive-quiz"
                   >
-                    <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-indigo-700">
+                    <div className="eyebrow flex items-center gap-2 text-atelier-vermilion">
                       <Award className="h-4 w-4" />
-                      <span>Interactive Concept Check</span>
+                      <span>{t("Interactive Concept Check")}</span>
                     </div>
                     <h4 className="mt-2 text-sm font-extrabold text-slate-900 sm:text-base">
                       {activeStory.quiz.question}
@@ -227,6 +222,7 @@ export default function AtlasPage() {
                           <button
                             key={idx}
                             type="button"
+                            disabled={selectedQuizOption !== null}
                             onClick={() => setSelectedQuizOption(idx)}
                             data-testid={`atlas-quiz-option-${idx}`}
                             className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-xs transition ${style}`}
@@ -242,12 +238,15 @@ export default function AtlasPage() {
 
                     {selectedQuizOption !== null && (
                       <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-3.5 text-xs text-slate-700">
-                        <strong className="text-emerald-700">
-                          Verified Explanation:{' '}
+                        <strong className="text-emerald-700">{t("Explanation:")}{' '}
                         </strong>
-                        {activeStory.quiz.explanation}
+                        <RichText text={activeStory.quiz.explanation} />
+                        <button type="button" className="text-button mt-3" data-testid="atlas-quiz-retry"
+                          onClick={() => setSelectedQuizOption(null)}>{t('Try the quiz again')}</button>
                       </div>
                     )}
+                    <ContentTutor key={activeStory.slug} endpoint="/api/atlas" context={{ action: 'ask_concept', slug: activeStory.slug }}
+                      title="Ask about this story" placeholder="What would you like to understand?" testPrefix="atlas" citation={activeStory.title} />
                   </div>
                 )}
               </div>

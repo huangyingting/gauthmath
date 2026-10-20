@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { chatFollowUpWithTutor } from '@/lib/ai/provider';
+import { parseTutorHistory } from '@/lib/tutoring';
 
 export async function GET(req: NextRequest) {
   const category = req.nextUrl.searchParams.get('category');
@@ -26,6 +27,13 @@ export async function POST(req: NextRequest) {
 
   // 1. Source-grounded AI Q&A on an Atlas Visual Story (C12)
   if (body.action === 'ask_concept' && body.slug && body.question) {
+    let history;
+    try { history = parseTutorHistory(body.history); }
+    catch (error) { return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : 'Invalid tutor history.' }, { status: 400 }); }
+    if (typeof body.question !== 'string' || !body.question.trim() || body.question.length > 2000
+      || (body.locale !== undefined && !['en', 'zh'].includes(body.locale))) {
+      return NextResponse.json({ ok: false, error: 'Enter a question of up to 2,000 characters.' }, { status: 400 });
+    }
     const story = await prisma.atlasStory.findUnique({
       where: { slug: String(body.slug) },
     });
@@ -49,6 +57,8 @@ export async function POST(req: NextRequest) {
       answerSummary: story.summary,
       userMessage: String(body.question).trim(),
       slideContext: chapterSummary,
+      locale: body.locale,
+      history,
     });
 
     return NextResponse.json({

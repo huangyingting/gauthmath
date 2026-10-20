@@ -51,7 +51,10 @@ import {
 } from '../src/lib/ai/provider';
 import { POST as ocrPost } from '../src/app/api/ocr/route';
 import { GET as healthGet } from '../src/app/api/health/route';
-import { formatLatexToReadableMath } from '../src/components/ui/MathFormula';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { MathFormula } from '../src/components/ui/MathFormula';
+import { LanguageProvider } from '../src/components/i18n/LanguageProvider';
 import { NextRequest } from 'next/server';
 import { prisma } from '../src/lib/prisma';
 
@@ -384,13 +387,12 @@ async function runUnitTests() {
   setRuntimeAiProvider('symbolic');
   const sampleEssay =
     'This study shows that neuro-symbolic methods are important for mathematical verification.';
-  const grammarRes = await analyzeWritingDocument({
+  await assert.rejects(analyzeWritingDocument({
     title: 'Lab Notes',
     category: 'Research Paper',
     content: sampleEssay,
     action: 'grammar',
-  });
-  assert.ok(grammarRes.polishedContent.includes('Grammar & Style Checked'));
+  }), /AI writing assistance is unavailable/);
 
   const paraphraseRes = await analyzeWritingDocument({
     title: 'Lab Notes',
@@ -447,13 +449,18 @@ async function runUnitTests() {
     'PostgreSQL migration must use TIMESTAMP(3) instead of SQLite DATETIME'
   );
 
-  const formattedMath = formatLatexToReadableMath(
-    '\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}'
-  );
+  const formattedMath = renderToStaticMarkup(createElement(LanguageProvider, {
+    initialLocale: 'en',
+    children: createElement(MathFormula, {
+      latex: '\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}',
+      display: true,
+    }),
+  }));
   assert.ok(
-    formattedMath.includes('±') &&
-      formattedMath.includes('√') &&
-      formattedMath.includes('²'),
+    formattedMath.includes('katex-html') &&
+      formattedMath.includes('<mfrac>') &&
+      formattedMath.includes('<msqrt>') &&
+      formattedMath.includes('<msup>'),
     `Unexpected formatted math: ${formattedMath}`
   );
 

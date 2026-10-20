@@ -2,6 +2,7 @@ import type { NextAuthOptions } from 'next-auth';
 import type { Adapter } from 'next-auth/adapters';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
 import { prisma } from './prisma';
 import {
   normalizeAccountEmail,
@@ -18,10 +19,19 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth',
   },
   providers: [
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
+      : []),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email', placeholder: 'joshuah@gauthmath.com' },
+        email: { label: 'Email', type: 'email', placeholder: 'name@institution.edu' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
@@ -82,6 +92,31 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google' && user.email) {
+        const email = normalizeAccountEmail(user.email);
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing?.status === 'REVOKED') {
+          await recordAuditLog({
+            actorId: existing.id,
+            actorEmail: existing.email,
+            action: 'REVOKED_USER_LOGIN_BLOCKED',
+            targetType: 'User',
+            targetId: existing.id,
+          });
+          return false;
+        }
+        await recordAuditLog({
+          actorId: existing?.id,
+          actorEmail: email,
+          action: 'USER_GOOGLE_SIGNED_IN',
+          targetType: 'User',
+          targetId: existing?.id || email,
+          metadata: { provider: 'google' },
+        });
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;

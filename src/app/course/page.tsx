@@ -1,17 +1,19 @@
 'use client';
 
+import { useI18n } from '@/components/i18n/LanguageProvider';
 import React, { useState, useEffect } from 'react';
 import {
   GraduationCap,
   Play,
   ChevronLeft,
   ChevronRight,
-  MessageSquare,
-  Send,
-  Sparkles,
   Clock,
 } from 'lucide-react';
 import { FunctionGraphSvg } from '@/components/math/FunctionGraphSvg';
+import { MathFormula } from '@/components/ui/MathFormula';
+import { RichText } from '@/components/ui/RichText';
+import { ContentTutor } from '@/components/ui/ContentTutor';
+import { ReadAloudButton } from '@/components/ui/VoiceControls';
 import { generateFunctionGraph } from '@/lib/math-engine/grapher';
 
 interface CourseSlide {
@@ -36,14 +38,14 @@ interface AcademyCourseItem {
 }
 
 export default function AcademyCoursePage() {
+  const { t } = useI18n();
   const [courses, setCourses] = useState<AcademyCourseItem[]>([]);
   const [activeCourse, setActiveCourse] = useState<AcademyCourseItem | null>(
     null
   );
   const [slideIndex, setSlideIndex] = useState(0);
-  const [tutorQuestion, setTutorQuestion] = useState('');
-  const [tutorReply, setTutorReply] = useState<string | null>(null);
-  const [askingTutor, setAskingTutor] = useState(false);
+  const [progress, setProgress] = useState<Record<string, number>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/courses')
@@ -52,9 +54,16 @@ export default function AcademyCoursePage() {
         if (Array.isArray(data?.courses) && data.courses.length > 0) {
           setCourses(data.courses);
           setActiveCourse(data.courses[0]);
+          try {
+            const saved: unknown = JSON.parse(localStorage.getItem('gauth-course-progress') || '{}');
+            if (!saved || typeof saved !== 'object' || Array.isArray(saved) || !Object.values(saved).every(value => Number.isInteger(value) && Number(value) >= 0)) throw new Error('Invalid saved progress.');
+            const positions = saved as Record<string, number>;
+            setProgress(positions);
+            setSlideIndex(Math.min(positions[data.courses[0].slug] || 0, data.courses[0].slides.length - 1));
+          } catch { setError('Your lesson position could not be restored on this device.'); }
         }
       })
-      .catch(() => {});
+      .catch(() => setError('Lessons could not be loaded. Please reload the page.'));
   }, []);
 
   const currentSlide = activeCourse?.slides?.[slideIndex] || null;
@@ -65,51 +74,39 @@ export default function AcademyCoursePage() {
       })
     : null;
 
-  const handleAskCourseTutor = async () => {
-    if (!activeCourse || !tutorQuestion.trim()) return;
-    setAskingTutor(true);
+  const changeSlide = (index: number) => {
+    if (!activeCourse) return;
+    setSlideIndex(index);
+    const updated = { ...progress, [activeCourse.slug]: index };
+    setProgress(updated);
     try {
-      const res = await fetch('/api/courses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slug: activeCourse.slug,
-          question: tutorQuestion,
-          slideIndex,
-          slideTitle: currentSlide?.title,
-          slideFormula: currentSlide?.formula,
-        }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setTutorReply(data.reply);
-      }
-    } finally {
-      setAskingTutor(false);
-    }
+      localStorage.setItem('gauth-course-progress', JSON.stringify(updated));
+    } catch { setError('Your lesson position could not be saved on this device.'); }
   };
 
   return (
     <div
-      className="mx-auto max-w-6xl px-4 py-8 sm:px-8"
+      className="page-container"
       data-testid="academy-course-page"
     >
       {/* Header Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 p-6 text-white shadow-xl sm:p-8">
-        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-rose-300">
+      <div className="page-heading">
+        <div className="eyebrow flex items-center gap-2 text-atelier-vermilion">
           <GraduationCap className="h-3.5 w-3.5" />
-          <span>GAUTH ACADEMY · 15-MINUTE INTERACTIVE VISUAL COURSES</span>
+          <span>{t("The academy / Small lessons, bigger understanding")}</span>
         </div>
-        <h1 className="mt-3 text-2xl font-black tracking-tight sm:text-4xl">
-          Master Any STEM Concept in 15 Minutes with Interactive Visuals
-        </h1>
-        <p className="mt-2 max-w-2xl text-xs text-slate-300 sm:text-sm">
-          Step through animated mathematical derivations, live 2D function plots, and ask the embedded AI Course Tutor questions at any slide.
-        </p>
+        {error && <p role="alert" className="mb-4 text-sm text-rose-800">{t(error)}</p>}
+        <h1>{t("One idea. A little deeper.")}</h1>
+        <p className="mt-4 text-atelier-muted">{t("Find your own pace with short, focused lessons. See a concept take shape, and ask questions along the way.")}</p>
       </div>
 
       {/* Course Selector Cards */}
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <details className="mb-6 rounded-lg border border-atelier-border p-4">
+        <summary className="flex items-center justify-between gap-4 text-sm">
+          <span><span className="mr-3 text-atelier-muted">{t("Your course")}</span>{activeCourse?.title || t('Choose a lesson')}</span>
+          <span className="shrink-0 text-xs text-atelier-vermilion">{t("Change course")}</span>
+        </summary>
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {courses.map((course) => {
           const active = activeCourse?.slug === course.slug;
           return (
@@ -118,25 +115,24 @@ export default function AcademyCoursePage() {
               type="button"
               onClick={() => {
                 setActiveCourse(course);
-                setSlideIndex(0);
-                setTutorReply(null);
+                setSlideIndex(Math.min(progress[course.slug] || 0, course.slides.length - 1));
               }}
               data-testid={`academy-course-card-${course.slug}`}
-              className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition ${
+              aria-pressed={active}
+              className={`flex flex-col justify-between rounded-lg border p-5 text-left transition ${
                 active
-                  ? 'border-[#FF4B4B] bg-rose-50/40 shadow-md'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
+                  ? 'border-atelier-vermilion bg-atelier-lilac'
+                  : 'border-atelier-border hover:bg-atelier-subtle'
               }`}
             >
               <div>
                 <div className="flex items-center justify-between text-[11px] font-bold">
-                  <span className="rounded-md bg-rose-100 px-2 py-0.5 text-[#FF4B4B]">
-                    {course.category}
+                  <span className="text-atelier-vermilion">
+                    {t(course.category)}
                   </span>
                   <span className="flex items-center gap-1 text-slate-400">
                     <Clock className="h-3 w-3" />
-                    {Math.round(course.durationSec / 60)} min
-                  </span>
+                    {t('{duration} min', { duration: Math.round(course.durationSec / 60) })}</span>
                 </div>
                 <h3 className="mt-2.5 text-sm font-extrabold text-slate-900">
                   {course.title}
@@ -145,29 +141,29 @@ export default function AcademyCoursePage() {
                   {course.subCategory}
                 </p>
               </div>
-              <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5 text-[11px] font-bold text-[#FF4B4B]">
-                <span>{course.slides.length} Interactive Slides</span>
+              <div className="mt-4 flex items-center justify-between border-t border-atelier-border pt-3 text-xs text-atelier-vermilion">
+                <span>{course.slides.length}{t(" Interactive Slides")}</span>
                 <Play className="h-3.5 w-3.5" />
               </div>
             </button>
           );
         })}
       </div>
+      </details>
 
       {/* Interactive Course Slide Player */}
       {activeCourse && currentSlide && (
         <div
-          className="mt-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+          className="paper-panel p-5 sm:p-6"
           data-testid="academy-slide-player"
         >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
-              <span className="text-xs font-extrabold uppercase tracking-wider text-[#FF4B4B]">
-                {activeCourse.category} · Slide {slideIndex + 1} of{' '}
-                {activeCourse.slides.length}
+              <span className="eyebrow text-atelier-vermilion">
+                {t(activeCourse.category)} · {t('Slide {current} of {total}', { current: slideIndex + 1, total: activeCourse.slides.length })}
               </span>
               <h2
-                className="mt-1 text-xl font-black text-slate-900"
+                className="mt-3 text-2xl font-semibold text-atelier-ink"
                 data-testid="academy-slide-title"
               >
                 {currentSlide.title}
@@ -178,86 +174,46 @@ export default function AcademyCoursePage() {
               <button
                 type="button"
                 disabled={slideIndex === 0}
-                onClick={() => setSlideIndex((i) => Math.max(0, i - 1))}
+                onClick={() => changeSlide(Math.max(0, slideIndex - 1))}
                 data-testid="academy-prev-slide-btn"
-                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                className="secondary-button disabled:opacity-40"
               >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </button>
+                <ChevronLeft className="h-4 w-4" />{t("Previous")}</button>
               <button
                 type="button"
                 disabled={slideIndex >= activeCourse.slides.length - 1}
                 onClick={() =>
-                  setSlideIndex((i) =>
-                    Math.min(activeCourse.slides.length - 1, i + 1)
-                  )
+                  changeSlide(Math.min(activeCourse.slides.length - 1, slideIndex + 1))
                 }
                 data-testid="academy-next-slide-btn"
-                className="inline-flex items-center gap-1 rounded-xl bg-[#FF4B4B] px-4 py-2 text-xs font-bold text-white hover:bg-rose-600 disabled:opacity-40"
-              >
-                Next Slide
-                <ChevronRight className="h-4 w-4" />
+                className="primary-button disabled:opacity-40"
+              >{t("Next Slide")}<ChevronRight className="h-4 w-4" />
               </button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-atelier-muted">
+              <progress className="h-1 w-32 accent-atelier-vermilion" aria-label={t('Lesson position')} value={slideIndex + 1} max={activeCourse.slides.length} />
+              <span>{t('Resume where you left off on this device.')}</span>
+              <ReadAloudButton text={`${currentSlide.title}. ${currentSlide.content}`} />
             </div>
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Left: Formula & Pedagogical Narrative */}
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-600">
-                  Core Mathematical Law
-                </div>
-                <div className="mt-1.5 overflow-x-auto font-mono text-sm font-bold text-indigo-950">
-                  {currentSlide.formula}
+            <div className="min-w-0 space-y-4">
+              <div className="rounded-lg bg-atelier-lilac p-4">
+                <div className="eyebrow text-atelier-vermilion">{t("Core Mathematical Law")}</div>
+                <div className="mt-2 text-base text-atelier-ink">
+                  <MathFormula latex={currentSlide.formula} display />
                 </div>
               </div>
 
-              <p className="text-sm leading-relaxed text-slate-700">
-                {currentSlide.content}
-              </p>
+              <RichText text={currentSlide.content} className="text-base leading-7 text-atelier-muted" />
 
               {/* Embedded Slide AI Tutor Box */}
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center gap-2 text-xs font-extrabold text-slate-800">
-                  <MessageSquare className="h-4 w-4 text-[#FF4B4B]" />
-                  <span>Ask Gauth Course Tutor about this slide</span>
-                </div>
-                <div className="mt-2.5 flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={tutorQuestion}
-                    onChange={(e) => setTutorQuestion(e.target.value)}
-                    placeholder="e.g. Why do higher powers of h vanish in the limit?"
-                    data-testid="academy-tutor-input"
-                    className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-[#FF4B4B] focus:outline-hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAskCourseTutor}
-                    disabled={askingTutor}
-                    data-testid="academy-tutor-ask-btn"
-                    className="inline-flex items-center gap-1 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-slate-800"
-                  >
-                    <Send className="h-3.5 w-3.5" />
-                    <span>{askingTutor ? '...' : 'Ask'}</span>
-                  </button>
-                </div>
-
-                {tutorReply && (
-                  <div
-                    className="mt-3 rounded-xl border border-emerald-200 bg-white p-3 text-xs leading-relaxed text-slate-700"
-                    data-testid="academy-tutor-reply"
-                  >
-                    <span className="mr-1.5 inline-flex items-center gap-1 font-bold text-emerald-700">
-                      <Sparkles className="h-3 w-3" />
-                      Course Tutor:
-                    </span>
-                    {tutorReply}
-                  </div>
-                )}
-              </div>
+              <ContentTutor key={`${activeCourse.slug}:${slideIndex}`} endpoint="/api/courses"
+                context={{ slug: activeCourse.slug, slideIndex }} title="Want to go a little deeper?"
+                placeholder="Ask about this lesson" testPrefix="academy"
+                citation={`${activeCourse.title} / ${currentSlide.title}`} />
             </div>
 
             {/* Right: Interactive 2D Simulation Graph */}
@@ -265,7 +221,7 @@ export default function AcademyCoursePage() {
               {graphData && (
                 <FunctionGraphSvg
                   graph={graphData}
-                  accentColor={activeCourse.simulationType || '#FF4B4B'}
+                  accentColor={activeCourse.simulationType || '#6A496B'}
                 />
               )}
             </div>

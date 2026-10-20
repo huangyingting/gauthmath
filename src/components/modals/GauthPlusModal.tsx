@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from '@/components/i18n/LanguageProvider';
+import type { LocalizedMessage } from '@/lib/i18n';
 import React, { useState } from 'react';
 import { X, Crown, Check, Sparkles, ShieldCheck, Zap } from 'lucide-react';
 
@@ -43,9 +45,10 @@ export function GauthPlusModal({
   currentTier = 'FREE',
   onUpgradeSuccess,
 }: GauthPlusModalProps) {
+  const { t } = useI18n();
   const [selectedCycle, setSelectedCycle] = useState('yearly');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [upgradedMessage, setUpgradedMessage] = useState<string | null>(null);
+  const [upgradedMessage, setUpgradedMessage] = useState<LocalizedMessage | null>(null);
 
   if (!isOpen) return null;
 
@@ -62,9 +65,10 @@ export function GauthPlusModal({
       });
       const data = await res.json();
       if (data.ok) {
-        setUpgradedMessage(
-          `Welcome to Gauth PLUS (${selectedCycle.toUpperCase()})! Unlimited step-by-step solutions and 20 AI Pro Super Tutor credits unlocked.`
-        );
+        setUpgradedMessage({
+          key: 'Welcome to Gauth PLUS ({cycle})! Unlimited step-by-step solutions and 20 AI Pro Super Tutor credits unlocked.',
+          values: { cycle: selectedCycle.toUpperCase() },
+        });
         onUpgradeSuccess?.('PLUS', selectedCycle);
       }
     } finally {
@@ -74,37 +78,33 @@ export function GauthPlusModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
       data-testid="gauth-plus-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="plus-modal-title"
     >
-      <div className="w-full max-w-3xl overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-2xl">
+      <div className="max-h-[90dvh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-atelier-surface shadow-2xl">
         {/* Hero Banner */}
-        <div className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 px-6 py-6 text-white">
+        <div className="relative border-b border-atelier-border px-7 py-8">
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-5 top-5 rounded-xl bg-white/10 p-1.5 text-white/80 hover:bg-white/20 hover:text-white"
-            aria-label="Close Gauth PLUS Modal"
+            className="absolute right-5 top-5 rounded-md p-2 text-atelier-muted hover:bg-atelier-subtle"
+            aria-label={t("Close Gauth PLUS Modal")}
           >
             <X className="h-5 w-5" />
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-slate-950 shadow-lg">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-atelier-citron text-atelier-ink">
               <Crown className="h-6 w-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-extrabold tracking-tight text-amber-300">
-                  GAUTH PLUS
-                </span>
-                <span className="rounded-full bg-amber-400/20 px-2.5 py-0.5 text-[11px] font-bold text-amber-200">
-                  UNLIMITED AI PRO + VERIFIED TUTORS
-                </span>
+              <div className="flex items-center gap-2 pr-8">
+                <span id="plus-modal-title" className="text-2xl font-semibold tracking-tight">{t("A little more possibility.")}</span>
               </div>
-              <p className="text-xs text-slate-300">
-                Join 300M+ global learners achieving 99.8% homework accuracy across 12 STEM & Humanities subjects
-              </p>
+              <p className="mt-2 text-sm text-atelier-muted">{t("Gauth Plus / More room for your curiosity.")}</p>
             </div>
           </div>
         </div>
@@ -112,7 +112,7 @@ export function GauthPlusModal({
         <div className="p-6">
           {upgradedMessage ? (
             <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">
-              {upgradedMessage}
+              {t(upgradedMessage.key, { ...upgradedMessage.values, cycle: t(String(upgradedMessage.values?.cycle || '')) })}
             </div>
           ) : null}
 
@@ -126,24 +126,25 @@ export function GauthPlusModal({
                   type="button"
                   onClick={() => setSelectedCycle(plan.id)}
                   data-testid={`plan-card-${plan.id}`}
-                  className={`relative flex flex-col justify-between rounded-2xl border-2 p-4 text-left transition ${
+                  aria-pressed={active}
+                  className={`relative flex flex-col justify-between rounded-lg border p-5 text-left transition ${
                     active
-                      ? 'border-amber-500 bg-amber-50/50 shadow-md'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-atelier-vermilion bg-atelier-lilac'
+                      : 'border-atelier-border hover:bg-atelier-subtle'
                   }`}
                 >
                   <div>
                     <span
-                      className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
+                      className={`inline-block rounded px-2 py-1 text-[10px] font-medium ${
                         active
-                          ? 'bg-amber-500 text-slate-950'
+                          ? 'bg-atelier-citron text-atelier-ink'
                           : 'bg-slate-100 text-slate-600'
                       }`}
                     >
-                      {plan.badge}
+                      {t(plan.badge)}
                     </span>
                     <h4 className="mt-2 text-sm font-bold text-slate-900">
-                      {plan.name}
+                      {t(plan.name)}
                     </h4>
                   </div>
 
@@ -152,12 +153,10 @@ export function GauthPlusModal({
                       <span className="text-2xl font-extrabold text-slate-900">
                         {plan.monthlyPrice}
                       </span>
-                      <span className="text-xs font-medium text-slate-500">
-                        / month
-                      </span>
+                      <span className="text-xs font-medium text-slate-500">{t("/ month")}</span>
                     </div>
                     <p className="mt-1 text-[11px] text-slate-500">
-                      {plan.billedNote} ({plan.perDay})
+                      {t(plan.billedNote)} ({t(plan.perDay)})
                     </p>
                   </div>
                 </button>
@@ -166,7 +165,7 @@ export function GauthPlusModal({
           </div>
 
           {/* Benefits Comparison */}
-          <div className="mt-6 grid grid-cols-1 gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 sm:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-4 border-y border-atelier-border py-6 sm:grid-cols-2">
             {[
               'Unlimited step-by-step homework solutions & study bank access',
               '20 Gauth AI Pro Super Tutor deep-reasoning sessions / month',
@@ -177,7 +176,7 @@ export function GauthPlusModal({
                 <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
                   <Check className="h-2.5 w-2.5" />
                 </div>
-                <span>{item}</span>
+                <span>{t(item)}</span>
               </div>
             ))}
           </div>
@@ -186,7 +185,7 @@ export function GauthPlusModal({
           <div className="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span>Cancel anytime · Instant activation · Current tier: {currentTier}</span>
+              <span>{t("Cancel anytime · Instant activation · Current tier: ")}{t(currentTier)}</span>
             </div>
 
             <button
@@ -194,12 +193,12 @@ export function GauthPlusModal({
               onClick={handleSubscribe}
               disabled={isSubmitting}
               data-testid="activate-gauth-plus-btn"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 px-6 py-3 text-sm font-extrabold text-slate-950 shadow-md transition hover:brightness-105 sm:w-auto"
+              className="primary-button w-full sm:w-auto"
             >
               <Zap className="h-4 w-4" />
               {isSubmitting
-                ? 'Activating Gauth PLUS...'
-                : `Upgrade to Gauth PLUS (${selectedCycle.toUpperCase()})`}
+                ? t('Activating Gauth PLUS...')
+                : t('Upgrade to Gauth PLUS ({cycle})', { cycle: t(selectedCycle.toUpperCase()) })}
             </button>
           </div>
         </div>

@@ -1,9 +1,12 @@
 'use client';
 
+import { useI18n } from '@/components/i18n/LanguageProvider';
+import type { LocalizedMessage } from '@/lib/i18n';
 import React, { useState, useEffect } from 'react';
 import { Crown, Check, Zap, ShieldCheck, Sparkles } from 'lucide-react';
 
 export default function GauthPlusPage() {
+  const { t } = useI18n();
   const [selectedCycle, setSelectedCycle] = useState<'yearly' | 'quarterly' | 'monthly'>('yearly');
   const [subscription, setSubscription] = useState<{
     planTier: string;
@@ -13,7 +16,7 @@ export default function GauthPlusPage() {
     courseCreditsRemaining: number;
   } | null>(null);
   const [activating, setActivating] = useState(false);
-  const [banner, setBanner] = useState<string | null>(null);
+  const [banner, setBanner] = useState<LocalizedMessage | null>(null);
 
   useEffect(() => {
     fetch('/api/subscription')
@@ -37,11 +40,12 @@ export default function GauthPlusPage() {
       const data = await res.json();
       if (data.ok) {
         setSubscription(data.subscription);
-        setBanner(
-          planTier === 'PLUS'
-            ? `Gauth PLUS (${selectedCycle.toUpperCase()}) is now active! Unlimited solutions unlocked.`
-            : 'Switched back to Gauth FREE tier.'
-        );
+        setBanner({
+          key: planTier === 'PLUS'
+            ? 'Gauth PLUS ({cycle}) is now active! Unlimited solutions unlocked.'
+            : 'Switched back to Gauth FREE tier.',
+          values: { cycle: selectedCycle.toUpperCase() },
+        });
       }
     } finally {
       setActivating(false);
@@ -49,47 +53,42 @@ export default function GauthPlusPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8" data-testid="plus-page">
-      <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 p-8 text-white shadow-xl">
-        <div className="inline-flex items-center gap-2 rounded-full bg-amber-400/20 px-3.5 py-1 text-xs font-extrabold text-amber-300">
+    <div className="page-container" data-testid="plus-page">
+      <div>
+        <div className="page-heading">
+        <div className="eyebrow flex items-center gap-2 text-atelier-vermilion">
           <Crown className="h-4 w-4" />
-          <span>GAUTH PLUS MEMBERSHIP · UNLIMITED STEM & HUMANITIES MASTERY</span>
+          <span>{t("Gauth Plus / A little more possibility")}</span>
         </div>
-        <h1 className="mt-3 text-3xl font-black sm:text-4xl">
-          Unlock Unlimited AI Pro Solutions & 24/7 Live Tutors
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-300">
-          Get instant access to Gauth AI Pro Super Tutor, 50,000+ verified human experts, and unlimited 3D visual courses.
-        </p>
+        <h1>{t("More room for your curiosity.")}</h1>
+        <p className="mt-4 text-atelier-muted">{t("More questions, deeper explanations, and more ways to work through what's on your mind.")}</p>
+        </div>
 
         {subscription && (
-          <div className="mt-6 grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-6 border-y border-atelier-border py-6 sm:grid-cols-4">
             <div>
-              <div className="text-[11px] text-slate-400">Current Plan</div>
+              <div className="text-[11px] text-slate-400">{t("Current Plan")}</div>
               <div
-                className="text-base font-black text-amber-300"
+                className="mt-2 text-sm font-semibold"
                 data-testid="current-plan-tier"
               >
-                {subscription.planTier} ({subscription.billingCycle})
+                {t(subscription.planTier)} ({t(subscription.billingCycle)})
               </div>
             </div>
             <div>
-              <div className="text-[11px] text-slate-400">Homework Quota</div>
-              <div className="text-base font-black text-white">
-                {subscription.freeQueriesRemaining} remaining
-              </div>
+              <div className="text-[11px] text-slate-400">{t("Homework Quota")}</div>
+              <div className="mt-2 text-sm font-semibold">
+                {t('{count} remaining', { count: subscription.freeQueriesRemaining })}</div>
             </div>
             <div>
-              <div className="text-[11px] text-slate-400">AI Pro Super Tutor</div>
-              <div className="text-base font-black text-white">
-                {subscription.aiProRemaining} / mo
-              </div>
+              <div className="text-[11px] text-slate-400">{t("AI Pro Super Tutor")}</div>
+              <div className="mt-2 text-sm font-semibold">
+                {t('{count} / mo', { count: subscription.aiProRemaining })}</div>
             </div>
             <div>
-              <div className="text-[11px] text-slate-400">Academy Credits</div>
-              <div className="text-base font-black text-white">
-                {subscription.courseCreditsRemaining} credits
-              </div>
+              <div className="text-[11px] text-slate-400">{t("Academy Credits")}</div>
+              <div className="mt-2 text-sm font-semibold">
+                {t('{count} credits', { count: subscription.courseCreditsRemaining })}</div>
             </div>
           </div>
         )}
@@ -97,7 +96,7 @@ export default function GauthPlusPage() {
 
       {banner && (
         <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-800">
-          {banner}
+          {t(banner.key, { ...banner.values, cycle: t(String(banner.values?.cycle || '')) })}
         </div>
       )}
 
@@ -132,31 +131,32 @@ export default function GauthPlusPage() {
               key={p.id}
               type="button"
               onClick={() => setSelectedCycle(p.id)}
-              className={`rounded-3xl border-2 p-6 text-left transition ${
+              aria-pressed={active}
+              className={`rounded-xl border p-5 text-left transition ${
                 active
-                  ? 'border-amber-500 bg-amber-50/40 shadow-lg'
-                  : 'border-slate-200 bg-white hover:border-slate-300'
+                  ? 'border-atelier-vermilion bg-atelier-lilac'
+                  : 'border-atelier-border bg-atelier-surface hover:bg-atelier-subtle'
               }`}
             >
-              <span className="inline-block rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-extrabold text-slate-950">
-                {p.badge}
+              <span className="inline-block rounded bg-atelier-citron px-2.5 py-1 text-[10px] font-medium text-atelier-ink">
+                {t(p.badge)}
               </span>
               <h3 className="mt-3 text-base font-extrabold text-slate-900">
-                {p.title}
+                {t(p.title)}
               </h3>
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="text-3xl font-black text-slate-900">
                   {p.price}
                 </span>
-                <span className="text-xs text-slate-500">/ month</span>
+                <span className="text-xs text-slate-500">{t("/ month")}</span>
               </div>
-              <p className="mt-1 text-xs text-slate-500">{p.sub}</p>
+              <p className="mt-1 text-xs text-slate-500">{t(p.sub)}</p>
             </button>
           );
         })}
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-6">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-5 border-t border-atelier-border pt-6">
         <div className="space-y-2">
           {[
             'Unlimited step-by-step solutions across all 12 subjects',
@@ -165,7 +165,7 @@ export default function GauthPlusPage() {
           ].map((feat, i) => (
             <div key={i} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
               <Check className="h-4 w-4 text-emerald-600" />
-              <span>{feat}</span>
+              <span>{t(feat)}</span>
             </div>
           ))}
         </div>
@@ -176,20 +176,18 @@ export default function GauthPlusPage() {
             onClick={() => handleUpdateTier('PLUS')}
             disabled={activating}
             data-testid="upgrade-plus-page-btn"
-            className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-6 py-3 text-sm font-extrabold text-slate-950 shadow-md hover:brightness-105"
+            className="primary-button"
           >
             <Zap className="h-4 w-4" />
-            <span>{activating ? 'Updating...' : 'Activate Gauth PLUS Now'}</span>
+            <span>{activating ? t('Updating...') : t('Activate Gauth PLUS Now')}</span>
           </button>
 
           {subscription?.planTier === 'PLUS' && (
             <button
               type="button"
               onClick={() => handleUpdateTier('FREE')}
-              className="rounded-2xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50"
-            >
-              Switch to Free Tier
-            </button>
+              className="secondary-button"
+            >{t("Switch to Free Tier")}</button>
           )}
         </div>
       </div>

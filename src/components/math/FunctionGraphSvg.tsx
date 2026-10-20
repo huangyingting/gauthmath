@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/components/i18n/LanguageProvider';
 import React, { useState } from 'react';
 import type { FunctionGraphData, KeyGraphFeature } from '@/lib/math-engine/grapher';
 
@@ -11,9 +12,10 @@ interface FunctionGraphSvgProps {
 
 export function FunctionGraphSvg({
   graph,
-  accentColor = '#FF4B4B',
+  accentColor = '#6A496B',
   className = '',
 }: FunctionGraphSvgProps) {
+  const { t } = useI18n();
   const [hoveredFeature, setHoveredFeature] = useState<KeyGraphFeature | null>(
     null
   );
@@ -57,10 +59,10 @@ export function FunctionGraphSvg({
         </div>
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
           <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono">
-            Domain: [{xMin}, {xMax}]
+            {t('Domain:')} [{xMin}, {xMax}]
           </span>
           <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono">
-            Range: [{yMin}, {yMax}]
+            {t('Range:')} [{yMin}, {yMax}]
           </span>
         </div>
       </div>
@@ -70,7 +72,7 @@ export function FunctionGraphSvg({
           viewBox={`0 0 ${width} ${height}`}
           className="h-auto w-full select-none"
           role="img"
-          aria-label={`2D Function Graph of ${graph.expression}`}
+          aria-label={t('2D Function Graph of {expression}', { expression: graph.expression })}
         >
           {/* Vertical Grid Lines */}
           {xTicks.map((x) => {

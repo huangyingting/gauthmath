@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/components/i18n/LanguageProvider';
 import React, { useState } from 'react';
 import { X, Calculator, CornerDownLeft, Delete } from 'lucide-react';
 
@@ -113,6 +114,7 @@ export function MathKeyboardModal({
   onBackspace,
   onSubmit,
 }: MathKeyboardModalProps) {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('basic');
 
   if (!isOpen) return null;
@@ -122,49 +124,49 @@ export function MathKeyboardModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-2 backdrop-blur-xs sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:items-center sm:p-4"
       data-testid="math-keyboard-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="math-keyboard-title"
     >
-      <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
+      <div className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-atelier-surface shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500 text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-atelier-lilac text-atelier-vermilion">
               <Calculator className="h-4 w-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Gauth Scientific & LaTeX Math Keyboard
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Click any mathematical operator, calculus template, or function to insert
-              </p>
+              <h3 id="math-keyboard-title" className="text-base font-semibold text-atelier-ink">{t("A few useful symbols.")}</h3>
+              <p className="text-[11px] text-slate-500">{t("Click any mathematical operator, calculus template, or function to insert")}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-200/60 hover:text-slate-700"
-            aria-label="Close Math Keyboard"
+            aria-label={t("Close Math Keyboard")}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Category Tabs */}
-        <div className="flex gap-1.5 border-b border-slate-100 bg-white px-5 py-2.5">
+        <div className="flex flex-wrap gap-1.5 border-b border-atelier-border px-5 py-3">
           {KEYBOARD_TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition ${
+              aria-pressed={activeTab === tab.id}
+              className={`rounded-md px-3.5 py-2 text-xs transition ${
                 activeTab === tab.id
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {tab.label}
+              {t(tab.label)}
             </button>
           ))}
         </div>
@@ -176,7 +178,7 @@ export function MathKeyboardModal({
               key={idx}
               type="button"
               onClick={() => onInsertSymbol(k.insert)}
-              className="flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-slate-50/80 font-mono text-sm font-semibold text-slate-800 transition hover:border-rose-400 hover:bg-rose-50 hover:text-rose-600 active:scale-95"
+              className="flex h-12 items-center justify-center rounded-md bg-atelier-subtle font-mono text-sm text-atelier-ink transition hover:bg-atelier-lilac"
             >
               {k.display}
             </button>
@@ -184,17 +186,15 @@ export function MathKeyboardModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-5 py-3">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
             {onBackspace && (
               <button
                 type="button"
                 onClick={onBackspace}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
-                <Delete className="h-3.5 w-3.5" />
-                Backspace
-              </button>
+                <Delete className="h-3.5 w-3.5" />{t("Backspace")}</button>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -202,9 +202,7 @@ export function MathKeyboardModal({
               type="button"
               onClick={onClose}
               className="rounded-xl px-4 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/60"
-            >
-              Done
-            </button>
+            >{t("Done")}</button>
             {onSubmit && (
               <button
                 type="button"
@@ -212,11 +210,9 @@ export function MathKeyboardModal({
                   onClose();
                   onSubmit();
                 }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-500 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-rose-600"
+                className="primary-button"
               >
-                <CornerDownLeft className="h-3.5 w-3.5" />
-                Solve Expression
-              </button>
+                <CornerDownLeft className="h-3.5 w-3.5" />{t("Solve Expression")}</button>
             )}
           </div>
         </div>
