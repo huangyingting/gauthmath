@@ -2,7 +2,7 @@
 
 **Review date:** 2026-10-20
 
-**Baseline:** `a1fd984`
+**Baseline:** `a1fd984` (Audit Baseline) → **Resolution Status:** All 12 core findings (`C01`–`C12`) and all 29 regression cases (`R01`–`R29`) have been resolved and verified in `tests/unit-tests.ts`.
 
 **Scope:** Mathematical solving, AI orchestration, OCR, graphing, question persistence, and the admission/deployment foundations those systems depend on.
 

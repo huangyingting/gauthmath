@@ -79,14 +79,14 @@ export async function PATCH(
     return NextResponse.json({ ok: true, question: updated });
   }
 
-  // 2. Vote helpful / unhelpful
+  // 2. Vote helpful / unhelpful (atomic increment to prevent lost updates under concurrency)
   if (body.vote === 'helpful' || body.vote === 'unhelpful') {
     const updated = await prisma.homeworkQuestion.update({
       where: { id: question.id },
       data:
         body.vote === 'helpful'
-          ? { helpfulCount: question.helpfulCount + 1 }
-          : { unhelpfulCount: question.unhelpfulCount + 1 },
+          ? { helpfulCount: { increment: 1 } }
+          : { unhelpfulCount: { increment: 1 } },
     });
     return NextResponse.json({ ok: true, question: updated });
   }

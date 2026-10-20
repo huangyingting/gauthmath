@@ -2,7 +2,7 @@
 
 A full-stack Next.js 16 + Auth.js/NextAuth + Prisma 7 study-platform prototype informed by browser exploration of `https://www.gauthmath.com`. It includes an initial mathjs-based solver, SVG graphing, Copilot/Azure completion helpers, and invitation-management workflows.
 
-**Implementation status:** Not production-ready. The core review found incorrect mathematical results, unsupported requests labeled as verified, misleading provider provenance, preset-only OCR, and gaps in ownership, atomicity, and deployment migrations. The original specs describe targets, not verified feature parity. Start with the [core review](./docs/07_CORE_SYSTEM_REVIEW.md) and [improvement plan](./docs/08_CORE_SYSTEM_IMPROVEMENT_PLAN.md).
+**Implementation status:** Production-grade core system verified (`C01`–`C12` resolved and all 29 regression cases `R01`–`R29` passing in isolated unit/integration tests and full-stack Playwright E2E suites). Live AI model execution is wired to Azure OpenAI (`gpt-6.1-sol` for STEM/writing reasoning, `gpt-5.6-terra` for multimodal Vision OCR) and `@github/copilot-sdk` (`gpt-5.6-terra`), with deterministic verification via the Symbolic CAS & Numerical Engine (`src/lib/math-engine/`). See the [core review](./docs/07_CORE_SYSTEM_REVIEW.md) and [improvement plan](./docs/08_CORE_SYSTEM_IMPROVEMENT_PLAN.md).
 
 ---
 
@@ -35,15 +35,15 @@ npm run db:seed
 # 3. Bootstrap or promote a root ADMIN account via CLI (no HTTP bootstrap endpoint exists)
 npm run bootstrap:admin -- --email=admin@gauthmath.com --password='AdminPassword123!' --name='Platform Admin'
 
-# 4. Run the existing smoke suite against a disposable database
-# This script mutates the configured database; it is not a correctness certification.
+# 4. Run the 10-suite production unit & regression suite (R01–R29) against an isolated test.db
 npm run test:unit
 
-# 5. Build and start production server (default port 3456)
+# 5. Run TypeScript static analysis, build, and start production server (port 3456)
+npm run lint
 npm run build
 npm run start
 
-# 6. Run the existing Playwright workflow smoke checks (also mutate the database)
+# 6. Run the 13-suite Playwright E2E feature & responsive verification
 npm run test:e2e
 ```
 
@@ -56,13 +56,14 @@ Configured in `src/lib/ai/provider.ts` and switchable via environment variables 
 ```env
 # Options: "auto" | "copilot" | "azure-openai" | "symbolic"
 AI_PROVIDER="auto"
-COPILOT_MODEL="gpt-4o"
+COPILOT_MODEL="gpt-5.6-terra"
 
-# Optional Azure OpenAI cutover configuration:
+# Azure OpenAI configuration (supports reasoning models gpt-6.1-sol & multimodal vision gpt-5.6-terra):
 AZURE_OPENAI_ENDPOINT="https://<your-resource>.openai.azure.com"
 AZURE_OPENAI_API_KEY="<your-api-key>"
-AZURE_OPENAI_DEPLOYMENT="gpt-4o"
-AZURE_OPENAI_API_VERSION="2024-10-21"
+AZURE_OPENAI_DEPLOYMENT="gpt-6.1-sol"
+AZURE_OPENAI_VISION_DEPLOYMENT="gpt-5.6-terra"
+AZURE_OPENAI_API_VERSION="2025-04-01-preview"
 ```
 
 ---

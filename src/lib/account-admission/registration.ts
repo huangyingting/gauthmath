@@ -103,49 +103,74 @@ export async function registerWithInvitation(
     );
   }
 
-  const existing = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
-    select: { id: true },
-  });
-  if (existing) {
-    throw new AccountAdmissionError(
-      409,
-      'already_member',
-      'A Gauth account already exists for this email.'
-    );
-  }
-
   const nextUsedCount = invitation.usedCount + 1;
   const exhausted = nextUsedCount >= invitation.maxUses;
 
-  const user = await prisma.user.create({
-    data: {
-      email: normalizedEmail,
-      emailVerified: now,
-      name: normalizedName(input.name, normalizedEmail),
-      role: invitation.role || 'STUDENT',
-      status: 'ACTIVE',
-      planTier: invitation.role === 'ADMIN' || invitation.role === 'TUTOR' ? 'PLUS' : 'FREE',
-      freeQueriesRemaining: invitation.role === 'STUDENT' ? 5 : 999,
-      aiProRemaining: invitation.role === 'STUDENT' ? 2 : 20,
-      courseCreditsRemaining: 5,
-      passwordHash,
-      passwordCredential: {
-        create: { passwordHash, passwordChangedAt: now },
-      },
-    },
-  });
+  const { user, updatedInvitation } = await prisma.$transaction(async (tx) => {
+    const existing = await tx.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new AccountAdmissionError(
+        409,
+        'already_member',
+        'A Gauth account already exists for this email.'
+      );
+    }
 
-  await prisma.accountInvitation.update({
-    where: { id: invitation.id },
-    data: {
-      status: exhausted ? 'ACCEPTED' : 'PENDING',
-      usedCount: nextUsedCount,
-      acceptedById: user.id,
-      acceptedAt: now,
-      activeForEmail: exhausted ? null : invitation.activeForEmail,
-      tokenHash: exhausted ? null : invitation.tokenHash,
-    },
+    // Atomic conditional claim on the invitation row to prevent concurrent double-redemption
+    const claimed = await tx.accountInvitation.updateMany({
+      where: {
+        id: invitation.id,
+        status: 'PENDING',
+        usedCount: invitation.usedCount,
+        expiresAt: { gt: now },
+      },
+      data: {
+        status: exhausted ? 'ACCEPTED' : 'PENDING',
+        usedCount: nextUsedCount,
+        acceptedAt: now,
+        activeForEmail: exhausted ? null : invitation.activeForEmail,
+        tokenHash: exhausted ? null : invitation.tokenHash,
+      },
+    });
+
+    if (claimed.count !== 1) {
+      throw new AccountAdmissionError(
+        410,
+        'used_invitation',
+        'This single-use invitation code has already been redeemed.'
+      );
+    }
+
+    const createdUser = await tx.user.create({
+      data: {
+        email: normalizedEmail,
+        emailVerified: now,
+        name: normalizedName(input.name, normalizedEmail),
+        role: invitation.role || 'STUDENT',
+        status: 'ACTIVE',
+        planTier:
+          invitation.role === 'ADMIN' || invitation.role === 'TUTOR'
+            ? 'PLUS'
+            : 'FREE',
+        freeQueriesRemaining: invitation.role === 'STUDENT' ? 5 : 999,
+        aiProRemaining: invitation.role === 'STUDENT' ? 2 : 20,
+        courseCreditsRemaining: 5,
+        passwordHash,
+        passwordCredential: {
+          create: { passwordHash, passwordChangedAt: now },
+        },
+      },
+    });
+
+    const finalInvitation = await tx.accountInvitation.update({
+      where: { id: invitation.id },
+      data: { acceptedById: createdUser.id },
+    });
+
+    return { user: createdUser, updatedInvitation: finalInvitation };
   });
 
   await recordAuditLog({
@@ -155,11 +180,11 @@ export async function registerWithInvitation(
     targetType: 'User',
     targetId: user.id,
     metadata: {
-      invitationId: invitation.id,
-      invitationCode: invitation.code,
+      invitationId: updatedInvitation.id,
+      invitationCode: updatedInvitation.code,
       assignedRole: user.role,
     },
   });
 
-  return { user, invitation };
+  return { user, invitation: updatedInvitation };
 }

@@ -22,8 +22,19 @@ export async function getActiveSessionUser() {
 }
 
 export async function getActiveOrDemoUser() {
-  const sessionUser = await getActiveSessionUser();
-  if (sessionUser) return sessionUser;
+  const session = await getServerSession(authOptions);
+  const sessionUser = session?.user as { id?: string; email?: string } | undefined;
+
+  if (sessionUser?.id) {
+    const user = await prisma.user.findUnique({
+      where: { id: sessionUser.id },
+    });
+    // Never fall back to demo user if an authenticated user has been revoked
+    if (!user || user.status === 'REVOKED') {
+      return null;
+    }
+    return user;
+  }
 
   // Fallback to default authenticated persona (Joshuah Powlowski from .cred) for unauthenticated preview
   const demoUser = await prisma.user.findFirst({

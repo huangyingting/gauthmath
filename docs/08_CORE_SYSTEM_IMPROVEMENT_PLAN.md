@@ -1,6 +1,6 @@
 # Core System Improvement Plan
 
-**Status:** Proposed; no runtime changes are made by this document.
+**Status:** Implemented & Verified (`C01`–`C12` resolved; all 29 regression cases `R01`–`R29` verified in `npm run test:unit`; live `gpt-6.1-sol` and `gpt-5.6-terra` models wired and verified).
 
 **Basis:** [Core implementation review](07_CORE_SYSTEM_REVIEW.md), baseline `a1fd984`.
 

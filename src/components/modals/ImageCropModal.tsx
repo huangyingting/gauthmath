@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   X,
   Crop,
@@ -9,6 +9,7 @@ import {
   Sparkles,
   Upload,
   CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 
 interface ImageCropModalProps {
@@ -60,7 +61,7 @@ const WORKSHEET_PRESETS = [
     label: 'Chemistry pH Lab',
     subject: 'Chemistry',
     previewTitle: 'AP Chemistry · Acid-Base Titration',
-    previewFormula: 'Calculate pH of 0.001 M HCl at 25°C (PV = nRT)',
+    previewFormula: 'Calculate pH of 0.001 M HCl at 25°C',
     defaultCrop: { x: 15, y: 20, width: 70, height: 52 },
   },
 ];
@@ -74,47 +75,97 @@ export function ImageCropModal({
   const [cropBox, setCropBox] = useState(WORKSHEET_PRESETS[0].defaultCrop);
   const [rotation, setRotation] = useState(0);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [uploadedImageSrc, setUploadedImageSrc] = useState<string | null>(null);
   const [customFormula, setCustomFormula] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const imageElementRef = useRef<HTMLImageElement | null>(null);
 
   if (!isOpen) return null;
 
   const handleSelectPreset = (preset: (typeof WORKSHEET_PRESETS)[0]) => {
     setSelectedPreset(preset);
     setCropBox(preset.defaultCrop);
+    setUploadedImageSrc(null);
+    setUploadedFileName(null);
+    setErrorMessage(null);
     setRotation(0);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadedFileName(file.name);
-    }
+    if (!file) return;
+    setUploadedFileName(file.name);
+    setErrorMessage(null);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setUploadedImageSrc(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const adjustHandle = (
-    dx: number,
-    dy: number,
-    dw: number,
-    dh: number
-  ) => {
-    setCropBox((prev) => ({
-      x: Math.max(4, Math.min(40, prev.x + dx)),
-      y: Math.max(4, Math.min(40, prev.y + dy)),
-      width: Math.max(35, Math.min(92, prev.width + dw)),
-      height: Math.max(30, Math.min(88, prev.height + dh)),
-    }));
+  const adjustHandle = (dx: number, dy: number, dw: number, dh: number) => {
+    setCropBox((prev) => {
+      const nextX = Math.max(4, Math.min(40, prev.x + dx));
+      const nextY = Math.max(4, Math.min(40, prev.y + dy));
+      const nextW = Math.max(25, Math.min(96 - nextX, prev.width + dw));
+      const nextH = Math.max(25, Math.min(96 - nextY, prev.height + dh));
+      return { x: nextX, y: nextY, width: nextW, height: nextH };
+    });
+  };
+
+  /**
+   * Performs real HTML5 Canvas pixel slicing over [cropBox.x%, cropBox.y%, cropBox.width%, cropBox.height%]
+   * when an uploaded image is present.
+   */
+  const sliceCroppedImageToDataUrl = (): string | null => {
+    const img = imageElementRef.current;
+    if (!img || !uploadedImageSrc || !img.naturalWidth || !img.naturalHeight) {
+      return null;
+    }
+    try {
+      const sx = Math.round((cropBox.x / 100) * img.naturalWidth);
+      const sy = Math.round((cropBox.y / 100) * img.naturalHeight);
+      const sw = Math.max(16, Math.round((cropBox.width / 100) * img.naturalWidth));
+      const sh = Math.max(16, Math.round((cropBox.height / 100) * img.naturalHeight));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      if (rotation !== 0) {
+        ctx.save();
+        ctx.translate(sw / 2, sh / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
+        ctx.restore();
+      } else {
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      }
+      return canvas.toDataURL('image/png');
+    } catch {
+      return null;
+    }
   };
 
   const handleConfirmCrop = async () => {
     setIsExtracting(true);
+    setErrorMessage(null);
     try {
+      const croppedImageDataUrl = sliceCroppedImageToDataUrl();
       const res = await fetch('/api/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          preset: selectedPreset.id,
+          preset: uploadedImageSrc ? undefined : selectedPreset.id,
+          subject: selectedPreset.subject,
           cropBox,
+          croppedImageDataUrl: croppedImageDataUrl || undefined,
           customLatex: customFormula.trim() || undefined,
         }),
       });
@@ -129,7 +180,13 @@ export function ImageCropModal({
           )}%`,
         });
         onClose();
+      } else {
+        setErrorMessage(
+          data.error || 'Could not extract equation from the selected crop region.'
+        );
       }
+    } catch {
+      setErrorMessage('Network error during OCR extraction.');
     } finally {
       setIsExtracting(false);
     }
@@ -149,10 +206,10 @@ export function ImageCropModal({
             </div>
             <div>
               <h3 className="text-base font-bold text-slate-900">
-                Crop One Question at a Time (8-Handle OCR Scanner)
+                Crop One Question at a Time (8-Handle Vision OCR Scanner)
               </h3>
               <p className="text-xs text-slate-500">
-                Drag or adjust the 8 bounding handles around a single homework question for 99.8% OCR accuracy
+                Upload a photo or select a sample worksheet and frame a single question with the 8 crop handles
               </p>
             </div>
           </div>
@@ -176,7 +233,7 @@ export function ImageCropModal({
                   type="button"
                   onClick={() => handleSelectPreset(preset)}
                   className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-                    selectedPreset.id === preset.id
+                    !uploadedImageSrc && selectedPreset.id === preset.id
                       ? 'bg-slate-900 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -200,22 +257,34 @@ export function ImageCropModal({
 
           {/* Interactive 8-Handle Canvas Viewport */}
           <div className="relative h-64 w-full overflow-hidden rounded-2xl border-2 border-slate-800 bg-slate-900 select-none">
-            {/* Simulated Worksheet Paper Background */}
-            <div
-              className="absolute inset-4 rounded-xl bg-amber-50/95 p-6 text-slate-800 shadow-inner transition-transform duration-200"
-              style={{ transform: `rotate(${rotation}deg)` }}
-            >
-              <div className="mb-2 flex items-center justify-between border-b border-slate-300 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                <span>{selectedPreset.previewTitle}</span>
-                <span>Subject: {selectedPreset.subject}</span>
+            {uploadedImageSrc ? (
+              <div className="flex h-full w-full items-center justify-center overflow-hidden bg-slate-950">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={imageElementRef}
+                  src={uploadedImageSrc}
+                  alt={uploadedFileName || 'Uploaded homework worksheet'}
+                  className="max-h-full max-w-full object-contain transition-transform duration-200"
+                  style={{ transform: `rotate(${rotation}deg)` }}
+                />
               </div>
-              <p className="mt-6 text-center font-mono text-xl font-bold text-slate-900 sm:text-2xl">
-                {customFormula || selectedPreset.previewFormula}
-              </p>
-              <p className="mt-4 text-center text-xs text-slate-500">
-                Show all algebraic steps and verify domain constraints.
-              </p>
-            </div>
+            ) : (
+              <div
+                className="absolute inset-4 rounded-xl bg-amber-50/95 p-6 text-slate-800 shadow-inner transition-transform duration-200"
+                style={{ transform: `rotate(${rotation}deg)` }}
+              >
+                <div className="mb-2 flex items-center justify-between border-b border-slate-300 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <span>{selectedPreset.previewTitle}</span>
+                  <span>Subject: {selectedPreset.subject}</span>
+                </div>
+                <p className="mt-6 text-center font-mono text-xl font-bold text-slate-900 sm:text-2xl">
+                  {customFormula || selectedPreset.previewFormula}
+                </p>
+                <p className="mt-4 text-center text-xs text-slate-500">
+                  Show all algebraic steps and verify domain constraints.
+                </p>
+              </div>
+            )}
 
             {/* Dark Mask Overlay outside crop region */}
             <div
@@ -295,6 +364,13 @@ export function ImageCropModal({
               </span>
             </div>
           </div>
+
+          {errorMessage && (
+            <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
           {/* Optional Custom OCR Override Input & Controls */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

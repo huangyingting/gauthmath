@@ -8,14 +8,15 @@ RUN npm install
 
 FROM base AS builder
 WORKDIR /app
+ARG PRISMA_SCHEMA=prisma/schema.postgres.prisma
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npx prisma generate --schema=prisma/schema.postgres.prisma && npm run build
+RUN npx prisma generate --schema=${PRISMA_SCHEMA} && npx next build --webpack
 
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3456
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
@@ -23,5 +24,5 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/scripts ./scripts
-EXPOSE 3000
+EXPOSE 3456
 CMD ["npm", "run", "start"]

@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
 
     const user = await getActiveOrDemoUser();
 
-    // Enforce quota if user is on FREE tier and bypassQuota is not set
-    if (user && user.planTier === 'FREE' && !body.bypassQuota) {
+    // Enforce server-authoritative quota if user is on FREE tier
+    if (user && user.planTier === 'FREE') {
       if (mode === 'PRO' && user.aiProRemaining <= 0) {
         return NextResponse.json(
           {
@@ -102,6 +102,15 @@ export async function POST(req: NextRequest) {
     });
 
     const slug = `sol-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const isVerified = solved.verificationStatus === 'verified' && solved.status === 'solved';
+    const accuracyScore =
+      solved.status !== 'solved'
+        ? 0
+        : solved.verificationStatus === 'verified'
+          ? 99
+          : solved.verificationStatus === 'approximated'
+            ? 92
+            : 75;
 
     const created = await prisma.homeworkQuestion.create({
       data: {
@@ -122,8 +131,8 @@ export async function POST(req: NextRequest) {
           ? JSON.stringify(solved.graphData)
           : null,
         providerUsed: `${solved.aiProvider}:${solved.aiModel}`,
-        accuracyScore: 99,
-        isVerifiedBank: true,
+        accuracyScore,
+        isVerifiedBank: isVerified,
         tutorName: solved.tutorName,
         followUpMessagesJson: JSON.stringify([
           {
