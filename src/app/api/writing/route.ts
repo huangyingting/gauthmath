@@ -5,10 +5,18 @@ import { getActiveOrDemoUser } from '@/lib/server-session';
 
 export async function GET(req: NextRequest) {
   const genre = req.nextUrl.searchParams.get('genre');
-  const where = genre && genre !== 'All' ? { genre } : {};
+  const user = await getActiveOrDemoUser();
+  const andClauses: Record<string, unknown>[] = [
+    user
+      ? { OR: [{ isCuratedExample: true }, { userId: user.id }] }
+      : { isCuratedExample: true },
+  ];
+  if (genre && genre !== 'All') {
+    andClauses.push({ genre });
+  }
 
   const documents = await prisma.writingDocument.findMany({
-    where,
+    where: { AND: andClauses },
     orderBy: { createdAt: 'desc' },
   });
 

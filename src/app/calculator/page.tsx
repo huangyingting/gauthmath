@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { FunctionGraphSvg } from '@/components/math/FunctionGraphSvg';
+import { MathFormula } from '@/components/ui/MathFormula';
 import type { FunctionGraphData } from '@/lib/math-engine/grapher';
 import type { MathSolutionResult } from '@/lib/math-engine/solver';
 
@@ -334,7 +335,7 @@ export default function CalculatorPage() {
                       </span>
                     </div>
                     <div className="mt-2 rounded-xl border border-slate-100 bg-white px-3 py-2 font-mono text-xs font-bold text-indigo-950">
-                      {step.latex}
+                      <MathFormula latex={step.latex} />
                     </div>
                     <p className="mt-1.5 text-xs text-slate-600">
                       {step.explanation}

@@ -36,6 +36,11 @@ export async function getActiveOrDemoUser() {
     return user;
   }
 
+  // In strict production mode (ALLOW_DEMO_PERSONA=false), never fall back to demo user
+  if (process.env.ALLOW_DEMO_PERSONA === 'false') {
+    return null;
+  }
+
   // Fallback to default authenticated persona (Joshuah Powlowski from .cred) for unauthenticated preview
   const demoUser = await prisma.user.findFirst({
     where: { email: 'joshuah@gauthmath.com', status: 'ACTIVE' },

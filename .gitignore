@@ -7,5 +7,8 @@ node_modules/
 .env.*.local
 prisma/*.db
 prisma/*.db-journal
+prisma/*.db-wal
+prisma/*.db-shm
+.runtime-ai-provider.json
 public/uploads/
 *.tsbuildinfo

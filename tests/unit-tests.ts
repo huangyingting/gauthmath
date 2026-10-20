@@ -50,6 +50,8 @@ import {
   analyzeWritingDocument,
 } from '../src/lib/ai/provider';
 import { POST as ocrPost } from '../src/app/api/ocr/route';
+import { GET as healthGet } from '../src/app/api/health/route';
+import { formatLatexToReadableMath } from '../src/components/ui/MathFormula';
 import { NextRequest } from 'next/server';
 import { prisma } from '../src/lib/prisma';
 
@@ -424,7 +426,46 @@ async function runUnitTests() {
     console.log('   ✓ Live Azure OpenAI (gpt-6.1-sol) Neuro-Symbolic PRO & STEM reasoning verified:', liveBiology.answerSummary.slice(0, 70));
   }
 
-  console.log('\n=== ALL 10 PRODUCTION SUITES & ALL 29 REGRESSIONS (R01–R29) PASSED! ===');
+  // Suite 11: PostgreSQL Migration DDL, MathFormula Typesetter & /api/health Probe (C10, C12)
+  console.log('11. Verifying PostgreSQL Migration DDL, MathFormula Typesetter & /api/health Probe...');
+  const pgMigrationPath = path.join(
+    process.cwd(),
+    'prisma',
+    'migrations-postgres',
+    '20261020000000_init',
+    'migration.sql'
+  );
+  const pgMigrationSql = fs.readFileSync(pgMigrationPath, 'utf8');
+  for (const model of expectedModels) {
+    assert.ok(
+      pgMigrationSql.includes(`CREATE TABLE "${model}"`),
+      `Missing PostgreSQL table ${model}`
+    );
+  }
+  assert.ok(
+    pgMigrationSql.includes('TIMESTAMP(3)') && !pgMigrationSql.includes('DATETIME'),
+    'PostgreSQL migration must use TIMESTAMP(3) instead of SQLite DATETIME'
+  );
+
+  const formattedMath = formatLatexToReadableMath(
+    '\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}'
+  );
+  assert.ok(
+    formattedMath.includes('±') &&
+      formattedMath.includes('√') &&
+      formattedMath.includes('²'),
+    `Unexpected formatted math: ${formattedMath}`
+  );
+
+  const healthRes = await healthGet();
+  assert.equal(healthRes.status, 200);
+  const healthBody = await healthRes.json();
+  assert.equal(healthBody.ok, true);
+  assert.equal(healthBody.status, 'healthy');
+  assert.equal(healthBody.database.connected, true);
+  console.log('   ✓ PostgreSQL 11-model DDL, MathFormula typesetter & /api/health verified');
+
+  console.log('\n=== ALL 11 PRODUCTION SUITES & ALL 29 REGRESSIONS (R01–R29) PASSED! ===');
 }
 
 runUnitTests()

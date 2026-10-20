@@ -48,12 +48,43 @@ function readEnvVar(name: string): string | undefined {
   return getFallbackEnvVars()[name]?.trim();
 }
 
+const RUNTIME_PROVIDER_STATE_FILE = path.resolve(
+  process.cwd(),
+  '.runtime-ai-provider.json'
+);
+
 export function setRuntimeAiProvider(mode: GauthAiProviderMode) {
   runtimeOverrideProvider = mode;
+  try {
+    fs.writeFileSync(
+      RUNTIME_PROVIDER_STATE_FILE,
+      JSON.stringify({ mode, updatedAt: new Date().toISOString() }),
+      'utf8'
+    );
+  } catch {
+    // ignore read-only fs in test environments
+  }
 }
 
 export function getConfiguredAiProviderMode(): GauthAiProviderMode {
   if (runtimeOverrideProvider) return runtimeOverrideProvider;
+  try {
+    if (fs.existsSync(RUNTIME_PROVIDER_STATE_FILE)) {
+      const parsed = JSON.parse(
+        fs.readFileSync(RUNTIME_PROVIDER_STATE_FILE, 'utf8')
+      ) as { mode?: string };
+      if (
+        parsed.mode === 'auto' ||
+        parsed.mode === 'copilot' ||
+        parsed.mode === 'azure-openai' ||
+        parsed.mode === 'symbolic'
+      ) {
+        return parsed.mode;
+      }
+    }
+  } catch {
+    // ignore corrupt state file
+  }
   const envVal = (readEnvVar('AI_PROVIDER') || 'auto').toLowerCase();
   if (
     envVal === 'copilot' ||

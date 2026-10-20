@@ -16,6 +16,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { FunctionGraphSvg } from '@/components/math/FunctionGraphSvg';
+import { MathFormula } from '@/components/ui/MathFormula';
 import type { FunctionGraphData } from '@/lib/math-engine/grapher';
 
 interface SolutionStep {
@@ -247,8 +248,20 @@ export default function SolutionDetailPage({
               <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
                 {question.topic}
               </span>
-              <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                {question.accuracyScore}% Verified Accuracy
+              <span
+                className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
+                  question.accuracyScore >= 90
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : question.accuracyScore > 0
+                      ? 'bg-amber-50 text-amber-700'
+                      : 'bg-rose-50 text-rose-700'
+                }`}
+              >
+                {question.accuracyScore >= 90
+                  ? `${question.accuracyScore}% Verified Accuracy`
+                  : question.accuracyScore > 0
+                    ? `${question.accuracyScore}% Numerical Approximation`
+                    : 'Unsupported / Needs Clarification'}
               </span>
             </div>
 
@@ -298,7 +311,7 @@ export default function SolutionDetailPage({
                     </h3>
                   </div>
                   <div className="mt-2.5 overflow-x-auto rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 font-mono text-sm font-bold text-indigo-950">
-                    {step.latex}
+                    <MathFormula latex={step.latex} />
                   </div>
                   <p className="mt-2 text-xs leading-relaxed text-slate-600">
                     {step.explanation}

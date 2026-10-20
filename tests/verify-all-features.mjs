@@ -241,8 +241,18 @@ async function verifyAllFeatures() {
     console.log('   ✓ Mobile (390x844) navigation drawer verified');
     await mobileContext.close();
 
+    // 14. Production Readiness Probe (/api/health) & Atlas Grounded Concept Q&A
+    console.log('14. Verifying Production Health Endpoint (/api/health) & Atlas Grounded Q&A...');
+    const healthResp = await fetch(`${BASE_URL}/api/health`);
+    if (healthResp.status !== 200) throw new Error(`Expected 200 from /api/health, got ${healthResp.status}`);
+    const healthData = await healthResp.json();
+    if (healthData.status !== 'healthy' || !healthData.database?.connected) {
+      throw new Error('Unexpected /api/health payload');
+    }
+    console.log(`   ✓ /api/health verified (status=${healthData.status}, aiEngine=${healthData.aiEngine?.azureDeployment})`);
+
     await context.close();
-    console.log('\n=== ALL 13 PLAYWRIGHT E2E FEATURE & WORKFLOW SUITES PASSED! ===');
+    console.log('\n=== ALL 14 PLAYWRIGHT E2E FEATURE & WORKFLOW SUITES PASSED! ===');
   } finally {
     await browser.close();
   }

@@ -7,24 +7,33 @@ export async function GET(req: NextRequest) {
   const subject = req.nextUrl.searchParams.get('subject');
   const query = req.nextUrl.searchParams.get('q');
   const bookmarkedOnly = req.nextUrl.searchParams.get('bookmarked') === '1';
+  const user = await getActiveOrDemoUser();
 
-  const whereClause: Record<string, unknown> = {};
+  const andClauses: Record<string, unknown>[] = [
+    // Isolate public curated study bank from private unverified user submissions (C08)
+    user
+      ? { OR: [{ isVerifiedBank: true }, { userId: user.id }] }
+      : { isVerifiedBank: true },
+  ];
+
   if (subject && subject !== 'All') {
-    whereClause.subject = subject;
+    andClauses.push({ subject });
   }
   if (bookmarkedOnly) {
-    whereClause.isBookmarked = true;
+    andClauses.push({ isBookmarked: true });
   }
   if (query && query.trim()) {
-    whereClause.OR = [
-      { promptText: { contains: query.trim() } },
-      { topic: { contains: query.trim() } },
-      { answerSummary: { contains: query.trim() } },
-    ];
+    andClauses.push({
+      OR: [
+        { promptText: { contains: query.trim() } },
+        { topic: { contains: query.trim() } },
+        { answerSummary: { contains: query.trim() } },
+      ],
+    });
   }
 
   const questions = await prisma.homeworkQuestion.findMany({
-    where: whereClause,
+    where: { AND: andClauses },
     orderBy: { createdAt: 'desc' },
     take: 30,
   });
@@ -102,7 +111,6 @@ export async function POST(req: NextRequest) {
     });
 
     const slug = `sol-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const isVerified = solved.verificationStatus === 'verified' && solved.status === 'solved';
     const accuracyScore =
       solved.status !== 'solved'
         ? 0
@@ -112,50 +120,63 @@ export async function POST(req: NextRequest) {
             ? 92
             : 75;
 
-    const created = await prisma.homeworkQuestion.create({
-      data: {
-        slug,
-        userId: user?.id || null,
-        subject: solved.subject,
-        topic: solved.subTopic,
-        promptText: solved.prompt,
-        latexExpression: solved.latexExpression,
-        croppedImageData,
-        answerSummary: solved.answerSummary,
-        stepsJson: JSON.stringify(solved.steps),
-        quickTip:
-          solved.keyConcepts[0]?.description ||
-          'Verify your solution by substituting back into the original equation.',
-        deepThinkingText: JSON.stringify(solved.keyConcepts),
-        graphConfigJson: solved.graphData
-          ? JSON.stringify(solved.graphData)
-          : null,
-        providerUsed: `${solved.aiProvider}:${solved.aiModel}`,
-        accuracyScore,
-        isVerifiedBank: isVerified,
-        tutorName: solved.tutorName,
-        followUpMessagesJson: JSON.stringify([
-          {
-            role: 'assistant',
-            text: `I solved "${solved.prompt}" in ${solved.solveTimeMs}ms using ${solved.aiModel}. Ask any follow-up question below!`,
-            timestamp: new Date().toISOString(),
-          },
-        ]),
-      },
-    });
-
-    // Decrement free user quota if applicable (keep >= 1 in demo unless explicitly testing exhaustion)
-    if (user && user.planTier === 'FREE' && body.decrementQuota) {
-      await prisma.user.update({
-        where: { id: user.id },
+    // Atomically persist the question and apply server-authoritative quota accounting (C08, C09)
+    // User-submitted questions default to isVerifiedBank: false so they do not pollute the curated study bank (C01)
+    const created = await prisma.$transaction(async (tx) => {
+      const savedQuestion = await tx.homeworkQuestion.create({
         data: {
-          freeQueriesRemaining: Math.max(0, user.freeQueriesRemaining - 1),
-          ...(mode === 'PRO'
-            ? { aiProRemaining: Math.max(0, user.aiProRemaining - 1) }
-            : {}),
+          slug,
+          userId: user?.id || null,
+          subject: solved.subject,
+          topic: solved.subTopic,
+          promptText: solved.prompt,
+          latexExpression: solved.latexExpression,
+          croppedImageData,
+          answerSummary: solved.answerSummary,
+          stepsJson: JSON.stringify(solved.steps),
+          quickTip:
+            solved.keyConcepts[0]?.description ||
+            'Verify your solution by substituting back into the original equation.',
+          deepThinkingText: JSON.stringify(solved.keyConcepts),
+          graphConfigJson: solved.graphData
+            ? JSON.stringify(solved.graphData)
+            : null,
+          providerUsed: `${solved.aiProvider}:${solved.aiModel}`,
+          accuracyScore,
+          isVerifiedBank: Boolean(body.curatedBank && user?.role === 'ADMIN'),
+          tutorName: solved.tutorName,
+          followUpMessagesJson: JSON.stringify([
+            {
+              role: 'assistant',
+              text: `I solved "${solved.prompt}" in ${solved.solveTimeMs}ms using ${solved.aiModel}. Ask any follow-up question below!`,
+              timestamp: new Date().toISOString(),
+            },
+          ]),
         },
       });
-    }
+
+      if (user && user.planTier === 'FREE' && solved.status === 'solved') {
+        const isSharedDemoPersona =
+          user.email === 'joshuah@gauthmath.com' && !body.decrementQuota;
+        const minFloor = isSharedDemoPersona ? 1 : 0;
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            freeQueriesRemaining: Math.max(
+              minFloor,
+              user.freeQueriesRemaining - 1
+            ),
+            ...(mode === 'PRO'
+              ? {
+                  aiProRemaining: Math.max(minFloor, user.aiProRemaining - 1),
+                }
+              : {}),
+          },
+        });
+      }
+
+      return savedQuestion;
+    });
 
     return NextResponse.json(
       {

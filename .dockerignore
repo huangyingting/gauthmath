@@ -13,6 +13,7 @@ test.db-wal
 .env
 .env.*
 !.env.example
+.runtime-ai-provider.json
 .cred
 screenshots
 .git
