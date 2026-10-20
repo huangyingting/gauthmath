@@ -1,5 +1,7 @@
 # 03 — Technical Specification & Core Algorithm Deep Dive
 
+> **Implementation-status correction (2026-10-20):** This document mixes proposed design with claims not supported by the current code. In particular, general symbolic integration, adaptive graphing, pixel-based OCR, and transactional invitation redemption are not implemented as described. Browser exploration also cannot establish the reference site's internal algorithms. Use [07_CORE_SYSTEM_REVIEW.md](07_CORE_SYSTEM_REVIEW.md) for the evidence-backed baseline and [08_CORE_SYSTEM_IMPROVEMENT_PLAN.md](08_CORE_SYSTEM_IMPROVEMENT_PLAN.md) for follow-on work; the descriptions below are not proof of implementation.
+
 ## 1. Core System Overview
 
 Our reverse-engineering and Playwright inspection of `https://www.gauthmath.com` revealed five core algorithmic pillars that make Gauth work:

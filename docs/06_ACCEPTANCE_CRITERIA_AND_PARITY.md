@@ -1,5 +1,7 @@
 # 06 — Acceptance Criteria & Feature-Parity Matrix
 
+> **Coverage correction (2026-10-20):** The matrix below describes intended parity, not verified completion. Existing smoke checks do not establish all feature combinations, tablet coverage, actual OCR/model execution, or mathematical correctness. See [07_CORE_SYSTEM_REVIEW.md](07_CORE_SYSTEM_REVIEW.md) for current gaps and [08_CORE_SYSTEM_IMPROVEMENT_PLAN.md](08_CORE_SYSTEM_IMPROVEMENT_PLAN.md) for measurable release gates.
+
 ## 1. Feature-Parity Matrix (`https://www.gauthmath.com` vs Local Implementation)
 
 | Feature Domain | Observed on `gauthmath.com` | Local Implementation Target | Verification Method |
