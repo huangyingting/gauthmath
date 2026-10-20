@@ -21,10 +21,12 @@ async function requireAdminSession(req: NextRequest) {
   if (user && user.role === 'ADMIN') {
     return user;
   }
+  const configuredAdminSecret = process.env.ADMIN_API_SECRET?.trim();
   const adminHeader = req.headers.get('x-gauth-admin-secret');
   if (
+    configuredAdminSecret &&
     adminHeader &&
-    adminHeader === (process.env.NEXTAUTH_SECRET || 'gauthmath-super-secret-nextauth-key-2026')
+    adminHeader === configuredAdminSecret
   ) {
     const adminUser = await prisma.user.findFirst({
       where: { role: 'ADMIN', status: 'ACTIVE' },

@@ -46,8 +46,11 @@ import {
   getAIProviderStatus,
   setRuntimeAiProvider,
   solveHomeworkProblem,
+  chatFollowUpWithTutor,
   analyzeWritingDocument,
 } from '../src/lib/ai/provider';
+import { POST as ocrPost } from '../src/app/api/ocr/route';
+import { NextRequest } from 'next/server';
 import { prisma } from '../src/lib/prisma';
 
 async function runUnitTests() {
@@ -257,7 +260,51 @@ async function runUnitTests() {
   assert.equal(r28Invalid, null, 'R28 failed: Invalid cropBox must return null');
   const r28Valid = validateCropBox({ x: 10, y: 20, width: 50, height: 40 });
   assert.deepEqual(r28Valid, { x: 10, y: 20, width: 50, height: 40 });
-  console.log('   ✓ R25 (450 J), R26 (pH = 3), R27 (unsupported guard), R28 (cropBox validation) passed');
+
+  // Exact R25-R28 contracts from docs/07_CORE_SYSTEM_REVIEW.md lines 234-242
+  const r25SymbolicPro = await solveHomeworkProblem({
+    prompt: 'x^2 - 5x + 6 = 0',
+    mode: 'PRO',
+    providerOverride: 'symbolic',
+  });
+  assert.equal(r25SymbolicPro.aiProvider, 'symbolic-cas', 'R25 failed: symbolic PRO must report symbolic-cas');
+  assert.ok(
+    !r25SymbolicPro.steps.some((s) => s.title.includes('Independent Residual & Domain Verification')),
+    'R25 failed: symbolic PRO must not append synthetic verification step'
+  );
+
+  const r26ChatVerifyFalse = await chatFollowUpWithTutor({
+    questionPrompt: 'x^2 = 4',
+    answerSummary: 'x = 99',
+    userMessage: 'Verify if x = 99 is a solution',
+    providerOverride: 'symbolic',
+  });
+  assert.equal(r26ChatVerifyFalse.provider, 'symbolic-cas');
+  assert.ok(
+    r26ChatVerifyFalse.reply.includes('NOT a valid solution') &&
+      r26ChatVerifyFalse.reply.includes('x = -2, x = 2'),
+    `R26 failed: expected rejection of x=99, got: ${r26ChatVerifyFalse.reply}`
+  );
+
+  const r27AsdfPolish = await analyzeWritingDocument({
+    title: 'Test',
+    category: 'Essay',
+    content: 'asdf',
+    action: 'polish',
+    providerOverride: 'symbolic',
+  });
+  assert.equal(r27AsdfPolish.status, 'insufficient_input');
+  assert.equal(r27AsdfPolish.overallScore, 0);
+  assert.equal(r27AsdfPolish.polishedContent, 'asdf');
+
+  const r28EmptyOcrRes = await ocrPost(
+    new NextRequest('http://localhost:3456/api/ocr', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    })
+  );
+  assert.equal(r28EmptyOcrRes.status, 400, 'R28 failed: Empty {} OCR body must return HTTP 400');
+  console.log('   ✓ R25–R28 (450 J, pH = 3, unsupported guard, symbolic PRO, false-root chat rejection, asdf writing guard, empty OCR 400) passed');
 
   // Suite 9: Atomic Invitation Redemption & Concurrency Guard (C09)
   console.log('9. Verifying Atomic Invitation Redemption & Concurrency Guard (C09)...');

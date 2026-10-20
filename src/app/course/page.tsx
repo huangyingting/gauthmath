@@ -75,6 +75,9 @@ export default function AcademyCoursePage() {
         body: JSON.stringify({
           slug: activeCourse.slug,
           question: tutorQuestion,
+          slideIndex,
+          slideTitle: currentSlide?.title,
+          slideFormula: currentSlide?.formula,
         }),
       });
       const data = await res.json();

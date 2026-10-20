@@ -15,13 +15,17 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3456:3456"
     environment:
+      PORT: "3456"
       DATABASE_URL: "postgresql://gauth_user:gauth_password@postgres:5432/gauthmath?schema=public"
-      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_URL: "http://localhost:3456"
       NEXTAUTH_SECRET: "production-gauthmath-secret-replace-me"
       ACCOUNT_ADMISSION_MODE: "invitation-only"
       AI_PROVIDER: "auto"
+      COPILOT_MODEL: "gpt-5.6-terra"
+      AZURE_OPENAI_DEPLOYMENT: "gpt-6.1-sol"
+      AZURE_OPENAI_VISION_DEPLOYMENT: "gpt-5.6-terra"
     depends_on:
       - postgres
 

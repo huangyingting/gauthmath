@@ -40,10 +40,30 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const slides = JSON.parse(course.chaptersJson || '[]') as Array<{
+    title?: string;
+    formula?: string;
+    content?: string;
+    explanation?: string;
+  }>;
+  const slideIdx =
+    typeof body.slideIndex === 'number' &&
+    body.slideIndex >= 0 &&
+    body.slideIndex < slides.length
+      ? body.slideIndex
+      : 0;
+  const activeSlide = slides[slideIdx];
+  const slideContext = activeSlide
+    ? `Slide ${slideIdx + 1}: "${activeSlide.title || body.slideTitle || ''}" | Formula: ${activeSlide.formula || body.slideFormula || 'N/A'} | Key Idea: ${activeSlide.content || activeSlide.explanation || course.summary}`
+    : undefined;
+
   const reply = await chatFollowUpWithTutor({
     questionPrompt: course.title,
-    answerSummary: course.summary,
+    answerSummary: activeSlide?.formula
+      ? `${course.summary} (Active Formula: ${activeSlide.formula})`
+      : course.summary,
     userMessage: question,
+    slideContext,
   });
 
   return NextResponse.json({
@@ -51,5 +71,6 @@ export async function POST(req: NextRequest) {
     reply: reply.reply,
     provider: reply.provider,
     model: reply.model,
+    slideContext,
   });
 }

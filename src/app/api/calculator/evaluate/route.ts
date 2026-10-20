@@ -17,11 +17,32 @@ export async function POST(req: NextRequest) {
     }
 
     const solution = solveMathOrStemProblem(expression, 'Math');
-    const graphTarget = solution.graphExpression || expression;
-    const graph = generateFunctionGraph(graphTarget, { xMin, xMax });
+    const boundsAdjusted =
+      typeof body.xMin === 'number' &&
+      typeof body.xMax === 'number' &&
+      body.xMin >= body.xMax;
+    const graphTarget =
+      solution.status === 'unsupported'
+        ? ''
+        : solution.graphExpression || expression;
+    const graph = graphTarget
+      ? generateFunctionGraph(graphTarget, { xMin, xMax })
+      : {
+          expression,
+          domain: [-10, 10] as [number, number],
+          range: [-10, 10] as [number, number],
+          points: [],
+          svgPaths: [],
+          features: [],
+        };
 
     return NextResponse.json({
-      ok: true,
+      ok: solution.status !== 'unsupported',
+      status: solution.status,
+      boundsAdjusted,
+      boundsWarning: boundsAdjusted
+        ? 'Requested xMin >= xMax was automatically expanded to a valid plotting interval.'
+        : undefined,
       solution,
       graph,
     });

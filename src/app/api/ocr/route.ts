@@ -137,9 +137,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Demo worksheet preset path: strictly validate presetKey (no silent fallback on invalid preset!)
-    const effectivePresetKey = presetKey || 'quadratic';
-    const matched = PRESET_WORKSHEET_CROPS[effectivePresetKey];
+    // 4. Require an explicit image, manual transcription, or explicit demo worksheet preset (Fixes R28)
+    if (!presetKey) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'Missing OCR input: provide a croppedImageDataUrl, customLatex, or an explicit demo worksheet preset.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const matched = PRESET_WORKSHEET_CROPS[presetKey];
     if (!matched) {
       return NextResponse.json(
         {
@@ -157,7 +167,8 @@ export async function POST(req: NextRequest) {
         extractedLatex: matched.latex,
         subject: matched.subject,
         confidence: matched.confidence,
-        source: `demo-preset:${effectivePresetKey}`,
+        source: `demo-preset:${presetKey}`,
+        isExamplePreset: true,
         cropBox,
         boundingRegions: [
           {

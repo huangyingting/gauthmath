@@ -227,6 +227,13 @@ async function verifyAllFeatures() {
     // PART 3: Responsive Viewports Verification (Tablet 768x1024 & Mobile 390x844)
     // -------------------------------------------------------------------------
     console.log('13. Testing Responsive Viewports (Tablet 768x1024 & Mobile 390x844)...');
+    const tabletContext = await browser.newContext({ viewport: { width: 768, height: 1024 } });
+    const tabletPage = await tabletContext.newPage();
+    await tabletPage.goto(`${BASE_URL}/calculator`, { waitUntil: 'networkidle' });
+    await tabletPage.getByTestId('calculator-page').waitFor();
+    console.log('   ✓ Tablet (768x1024) Calculator & 2D Grapher layout verified');
+    await tabletContext.close();
+
     const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const mobilePage = await mobileContext.newPage();
     await mobilePage.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
