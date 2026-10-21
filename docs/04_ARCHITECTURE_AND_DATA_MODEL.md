@@ -7,7 +7,7 @@
 │                     Client Layer (Next.js 16 App Router + React 19)                    │
 │                                                                                        │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐  │
-│  │ Homework Helper  │  │  AI Calculator   │  │   Gauth Atlas    │  │ Gauth Academy  │  │
+│  │ Homework Helper  │  │  AI Calculator   │  │   Tavi Atlas    │  │ Tavi Academy  │  │
 │  │ + Image Cropper  │  │ 3-Tab Math Pad + │  │  2D Hotspot Map  │  │ Interactive    │  │
 │  │ + Math Keyboard  │  │ 22 Calculators   │  │ + Curiosity Tree │  │ Course Player  │  │
 │  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘  └───────┬────────┘  │
@@ -34,9 +34,9 @@
 │  • /api/calculator/evaluate     (Symbolic Algebra, Calculus, Matrix, Stats & Graph)    │
 │  • /api/ocr                     (Cropped Homework Image OCR & Expression Extractor)    │
 │  • /api/atlas                   (Visual Story Explorer, Hotspot Deep-Dive & Generator) │
-│  • /api/courses                 (Gauth Academy Infinite & Lecture Course Engine)       │
+│  • /api/courses                 (Tavi Academy Infinite & Lecture Course Engine)       │
 │  • /api/writing                 (Essay Bank + AI Essay Outline/Draft/Critique Helper)  │
-│  • /api/subscription            (Gauth PLUS Plan Upgrade & Quota Management)           │
+│  • /api/subscription            (Tavi PLUS Plan Upgrade & Quota Management)           │
 └───────────────┬───────────────────────────────────────────────────────┬────────────────┘
                 │                                                       │
                 ▼                                                       ▼
@@ -70,7 +70,7 @@
 - **`PasswordCredential`**:
   - `id`, `userId` (`@unique`), `passwordHash`, `passwordChangedAt`, `resetTokenHash` (`@unique`)
 - **`AccountInvitation`**:
-  - `id`, `code` (`@unique`, e.g. `GAUTH-2026-STEM`), `email`, `normalizedEmail`, `activeForEmail` (`@unique`), `tokenHash` (`@unique`), `role` (`ADMIN | TUTOR | STUDENT`), `status` (`PENDING | ACCEPTED | REVOKED | EXPIRED`), `maxUses` (`Int @default(1)`), `usedCount` (`Int @default(0)`), `invitedById`, `acceptedById`, `expiresAt`, `acceptedAt`, `revokedAt`
+  - `id`, `code` (`@unique`, e.g. `TAVI-2026-STEM`), `email`, `normalizedEmail`, `activeForEmail` (`@unique`), `tokenHash` (`@unique`), `role` (`ADMIN | TUTOR | STUDENT`), `status` (`PENDING | ACCEPTED | REVOKED | EXPIRED`), `maxUses` (`Int @default(1)`), `usedCount` (`Int @default(0)`), `invitedById`, `acceptedById`, `expiresAt`, `acceptedAt`, `revokedAt`
 - **`AuditLog`**:
   - `id`, `actorId`, `actorEmail`, `action`, `targetType`, `targetId`, `metadataJson`, `ipAddress`, `createdAt`
 

@@ -4,11 +4,11 @@
 
 ## 1. Core System Overview
 
-Our reverse-engineering and Playwright inspection of `https://www.gauthmath.com` revealed five core algorithmic pillars that make Gauth work:
+Tavi combines five core learning capabilities:
 1. **Hybrid Neuro-Symbolic Math & STEM Solver Engine (`QuestionCreate -> QuestionSolve -> SolutionDetail`)**
 2. **Interactive 8-Handle Image Crop & Vision/OCR Expression Extractor**
 3. **Adaptive 2D Function Graphing & Interactive Physics/STEM Simulation Engine**
-4. **Gauth Atlas Spatial Knowledge Graph & Multi-Depth Curiosity Tree**
+4. **Tavi Atlas Spatial Knowledge Graph & Multi-Depth Curiosity Tree**
 5. **Invite-Only Account Admission, Cryptographic Token Claim & Revocation State Machine**
 
 Below is the formal specification and algorithmic design for each core system.
@@ -130,7 +130,7 @@ export interface AiCompletionRequest {
 ## 6. Core Algorithm 5: Invite-Only Admission & Security Invariants (`src/lib/account-admission/`)
 
 - **Single-Use & Expiring Invitation Claim**:
-  - Each `AccountInvitation` has both a human-typeable code (`GAUTH-XXXX-XXXX`) and a 256-bit cryptographic token (`tokenHash = sha256(token)`), `role` (`ADMIN | TUTOR | STUDENT`), `maxUses` (default `1`), `usedCount`, and `expiresAt`.
+  - Each `AccountInvitation` has both a human-typeable code (`TAVI-XXXX-XXXX`) and a 256-bit cryptographic token (`tokenHash = sha256(token)`), `role` (`ADMIN | TUTOR | STUDENT`), `maxUses` (default `1`), `usedCount`, and `expiresAt`.
   - Registration executes inside a serializable `prisma.$transaction`:
     1. Verifies `status === "PENDING"`, `expiresAt > now`, `usedCount < maxUses`, and email match.
     2. Hashes password using `scrypt` (`N=16384, r=8, p=1`, 64-byte derived key with random 16-byte salt).

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getActiveOrDemoUser } from '@/lib/server-session';
-import { solveHomeworkProblem, type GauthAiProviderMode } from '@/lib/ai/provider';
+import { solveHomeworkProblem, type TaviAiProviderMode } from '@/lib/ai/provider';
+import { studyQuestionWhere } from '@/lib/page-data';
 
 export async function GET(req: NextRequest) {
   const subject = req.nextUrl.searchParams.get('subject');
@@ -9,31 +10,8 @@ export async function GET(req: NextRequest) {
   const bookmarkedOnly = req.nextUrl.searchParams.get('bookmarked') === '1';
   const user = await getActiveOrDemoUser();
 
-  const andClauses: Record<string, unknown>[] = [
-    // Isolate public curated study bank from private unverified user submissions (C08)
-    user
-      ? { OR: [{ isVerifiedBank: true }, { userId: user.id }] }
-      : { isVerifiedBank: true },
-  ];
-
-  if (subject && subject !== 'All') {
-    andClauses.push({ subject });
-  }
-  if (bookmarkedOnly) {
-    andClauses.push({ isBookmarked: true });
-  }
-  if (query && query.trim()) {
-    andClauses.push({
-      OR: [
-        { promptText: { contains: query.trim() } },
-        { topic: { contains: query.trim() } },
-        { answerSummary: { contains: query.trim() } },
-      ],
-    });
-  }
-
   const questions = await prisma.homeworkQuestion.findMany({
-    where: { AND: andClauses },
+    where: studyQuestionWhere(user?.id, { subject, query, bookmarkedOnly }),
     orderBy: { createdAt: 'desc' },
     take: 30,
   });
@@ -65,7 +43,7 @@ export async function POST(req: NextRequest) {
       ? String(body.croppedImageData)
       : null;
     const providerOverride = body.providerOverride as
-      | GauthAiProviderMode
+      | TaviAiProviderMode
       | undefined;
 
     if (!promptText) {
@@ -85,7 +63,7 @@ export async function POST(req: NextRequest) {
             ok: false,
             code: 'QUOTA_EXCEEDED_PRO',
             error:
-              'Your free Gauth AI Pro trials are exhausted. Upgrade to Gauth PLUS for unlimited AI Pro Super Tutor solutions.',
+              'Your free Tavi AI Pro trials are exhausted. Upgrade to Tavi PLUS for unlimited AI Pro Super Tutor solutions.',
           },
           { status: 402 }
         );
@@ -96,7 +74,7 @@ export async function POST(req: NextRequest) {
             ok: false,
             code: 'QUOTA_EXCEEDED_FREE',
             error:
-              'You have used all free daily homework solutions. Upgrade to Gauth PLUS for unlimited step-by-step answers.',
+              'You have used all free daily homework solutions. Upgrade to Tavi PLUS for unlimited step-by-step answers.',
           },
           { status: 402 }
         );

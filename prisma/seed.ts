@@ -5,7 +5,7 @@ import { solveMathOrStemProblem } from '../src/lib/math-engine/solver';
 import { generateFunctionGraph } from '../src/lib/math-engine/grapher';
 
 async function main() {
-  console.log('Seeding Gauthmath database...');
+  console.log('Seeding Tavi database...');
 
   const now = new Date();
   const nextWeek = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
@@ -16,17 +16,17 @@ async function main() {
 
   // 1. Seed Platform Administrator and Verified Faculty Tutor (no demo student user)
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@gauthmath.com' },
+    where: { email: 'admin@tavi.test' },
     update: {
-      name: 'Gauth Platform Administrator',
+      name: 'Tavi Platform Administrator',
       role: 'ADMIN',
       status: 'ACTIVE',
       planTier: 'PLUS',
       passwordHash: adminPasswordHash,
     },
     create: {
-      email: 'admin@gauthmath.com',
-      name: 'Gauth Platform Administrator',
+      email: 'admin@tavi.test',
+      name: 'Tavi Platform Administrator',
       role: 'ADMIN',
       status: 'ACTIVE',
       planTier: 'PLUS',
@@ -45,12 +45,12 @@ async function main() {
   await prisma.user.deleteMany({
     where: {
       role: 'STUDENT',
-      email: { notIn: ['admin@gauthmath.com', 'tutor@gauthmath.com'] },
+      email: { notIn: ['admin@tavi.test', 'tutor@tavi.test'] },
     },
   });
 
   const tutor = await prisma.user.upsert({
-    where: { email: 'tutor@gauthmath.com' },
+    where: { email: 'tutor@tavi.test' },
     update: {
       name: 'Dr. Evelyn Vance',
       role: 'TUTOR',
@@ -59,7 +59,7 @@ async function main() {
       passwordHash: tutorPasswordHash,
     },
     create: {
-      email: 'tutor@gauthmath.com',
+      email: 'tutor@tavi.test',
       name: 'Dr. Evelyn Vance',
       role: 'TUTOR',
       status: 'ACTIVE',
@@ -78,28 +78,28 @@ async function main() {
   // 2. Seed Single-Use & Expiring Invitations
   const sampleInvites = [
     {
-      code: 'GAUTH-2026-STUD',
-      email: 'student-invite@gauthmath.com',
+      code: 'TAVI-2026-STUD',
+      email: 'student-invite@tavi.test',
       role: 'STUDENT',
       status: 'PENDING',
       maxUses: 1,
       expiresAt: nextWeek,
-      activeForEmail: 'student-invite@gauthmath.com',
-      tokenHash: hashOpaqueToken('GAUTH-2026-STUD'),
+      activeForEmail: 'student-invite@tavi.test',
+      tokenHash: hashOpaqueToken('TAVI-2026-STUD'),
     },
     {
-      code: 'GAUTH-2026-TUTR',
-      email: 'tutor-invite@gauthmath.com',
+      code: 'TAVI-2026-TUTR',
+      email: 'tutor-invite@tavi.test',
       role: 'TUTOR',
       status: 'PENDING',
       maxUses: 1,
       expiresAt: nextWeek,
-      activeForEmail: 'tutor-invite@gauthmath.com',
-      tokenHash: hashOpaqueToken('GAUTH-2026-TUTR'),
+      activeForEmail: 'tutor-invite@tavi.test',
+      tokenHash: hashOpaqueToken('TAVI-2026-TUTR'),
     },
     {
-      code: 'GAUTH-2026-EXPD',
-      email: 'expired-invite@gauthmath.com',
+      code: 'TAVI-2026-EXPD',
+      email: 'expired-invite@tavi.test',
       role: 'STUDENT',
       status: 'EXPIRED',
       maxUses: 1,
@@ -286,12 +286,12 @@ async function main() {
         accuracyScore: 99,
         isBookmarked: q.id === 'sol-quadratic-roots' || q.id === 'sol-calculus-derivative',
         isVerifiedBank: true,
-        tutorName: q.mode === 'PRO' ? 'Gauth AI Pro Super Tutor' : 'Dr. Evelyn Vance (Ph.D. STEM)',
+        tutorName: q.mode === 'PRO' ? 'Tavi AI Pro Super Tutor' : 'Dr. Evelyn Vance (Ph.D. STEM)',
       },
     });
   }
 
-  // 4. Seed Gauth Atlas Interactive Visual Stories
+  // 4. Seed Tavi Atlas Interactive Visual Stories
   const atlasStories = [
     {
       slug: 'black-death-medieval-transformation',
@@ -482,7 +482,7 @@ async function main() {
     });
   }
 
-  // 5. Seed Gauth Academy Interactive Courses
+  // 5. Seed Tavi Academy Interactive Courses
   const courses = [
     {
       slug: 'calculus-derivatives-visual-mastery',
@@ -630,7 +630,7 @@ async function main() {
     });
   }
 
-  // 6. Seed Gauth Writing Helper Curated Essays
+  // 6. Seed Tavi Writing Helper Curated Essays
   const essays = [
     {
       id: 'essay-ai-healthcare',

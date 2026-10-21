@@ -8,12 +8,12 @@ import {
   recordAuditLog,
   revokeAccountInvitation,
   rotateAccountInvitation,
-  type GauthRole,
+  type TaviRole,
 } from '@/lib/account-admission';
 import {
   getAIProviderStatus,
   setRuntimeAiProvider,
-  type GauthAiProviderMode,
+  type TaviAiProviderMode,
 } from '@/lib/ai/provider';
 
 async function requireAdminSession(req: NextRequest) {
@@ -22,7 +22,7 @@ async function requireAdminSession(req: NextRequest) {
     return user;
   }
   const configuredAdminSecret = process.env.ADMIN_API_SECRET?.trim();
-  const adminHeader = req.headers.get('x-gauth-admin-secret');
+  const adminHeader = req.headers.get('x-tavi-admin-secret');
   if (
     configuredAdminSecret &&
     adminHeader &&
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'create_invitation') {
       const email = String(body.email || '');
-      const role = (body.role as GauthRole) || 'STUDENT';
+      const role = (body.role as TaviRole) || 'STUDENT';
       const maxUses = Number(body.maxUses || 1);
       const ttlHours = Number(body.ttlHours || 168);
 
@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'switch_ai_provider') {
-      const mode = String(body.provider || 'auto') as GauthAiProviderMode;
+      const mode = String(body.provider || 'auto') as TaviAiProviderMode;
       setRuntimeAiProvider(mode);
       await recordAuditLog({
         actorId: admin.id,

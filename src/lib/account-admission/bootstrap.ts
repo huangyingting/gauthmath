@@ -34,7 +34,7 @@ export async function bootstrapAdmin(input: {
 
   const passwordHash = await hashPassword(input.password);
   const now = new Date();
-  const displayName = input.name?.trim() || email.split('@')[0] || 'Gauth Admin';
+  const displayName = input.name?.trim() || email.split('@')[0] || 'Tavi Admin';
 
   const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.user.findUnique({

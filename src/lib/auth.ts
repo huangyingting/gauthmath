@@ -128,13 +128,14 @@ export const authOptions: NextAuthOptions = {
       } else if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true, status: true, planTier: true, name: true },
+          select: { role: true, status: true, planTier: true, name: true, email: true },
         });
         if (dbUser) {
           token.role = dbUser.role;
           token.status = dbUser.status;
           token.planTier = dbUser.planTier;
           token.name = dbUser.name;
+          token.email = dbUser.email;
         }
       }
       return token;
@@ -155,5 +156,5 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'gauthmath-super-secret-nextauth-key-2026',
+  secret: process.env.NEXTAUTH_SECRET || 'tavi-super-secret-nextauth-key-2026',
 };

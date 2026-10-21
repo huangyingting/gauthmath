@@ -7,7 +7,7 @@ export function createOpaqueToken(): string {
 export function createInviteCode(): string {
   const seg1 = randomBytes(2).toString('hex').toUpperCase();
   const seg2 = randomBytes(2).toString('hex').toUpperCase();
-  return `GAUTH-${seg1}-${seg2}`;
+  return `TAVI-${seg1}-${seg2}`;
 }
 
 export function hashOpaqueToken(token: string): string {

@@ -18,8 +18,8 @@
     --accent-jade: #526645;
     --accent-amber: #95603d;
     --accent-citron: #d9edaa;
-    --gauth-red: var(--accent-vermilion);
-    --gauth-dark: var(--ink-primary);
+    --tavi-red: var(--accent-vermilion);
+    --tavi-dark: var(--ink-primary);
     --font-sans: var(--font-mona), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "WenQuanYi Zen Hei", sans-serif;
     --font-display: var(--font-sans);
     --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -37,6 +37,7 @@
   }
 
   html {
+    scrollbar-gutter: stable;
     color: var(--ink-primary);
     background: var(--bg-canvas);
     font-family: var(--font-sans);
@@ -175,6 +176,20 @@
     outline: none;
     box-shadow: none;
   }
+
+  .custom-select { display: inline-flex; min-width: 0; max-width: 100%; vertical-align: middle; }
+  .custom-select-trigger { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--border-hairline); border-radius: var(--radius-control); background: var(--bg-surface); color: var(--ink-primary); font-size: 0.875rem; line-height: 1.4; text-align: left; transition: border-color 150ms ease, background 150ms ease; }
+  .custom-select-trigger:hover:not(:disabled) { border-color: var(--border-strong); }
+  .custom-select-trigger:focus-visible, .custom-select-trigger[aria-expanded="true"] { border-color: var(--accent-vermilion); outline: none; box-shadow: none; }
+  .custom-select-trigger:disabled { opacity: 0.5; background: var(--bg-subtle); }
+  .custom-select-chevron { color: var(--ink-muted); transition: transform 150ms ease; }
+  .custom-select-trigger[aria-expanded="true"] .custom-select-chevron { transform: rotate(180deg); }
+  .custom-select-menu { position: fixed; z-index: 100; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 5px; border: 1px solid var(--border-hairline); border-radius: 10px; background: var(--bg-surface); color: var(--ink-primary); box-shadow: 0 12px 32px -12px #32243840; }
+  .custom-select-option { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px; padding: 9px 10px; border-radius: 5px; font-size: 0.875rem; line-height: 1.4; cursor: pointer; overflow-wrap: anywhere; }
+  .custom-select-option[aria-selected="true"] { color: var(--accent-vermilion); font-weight: 600; }
+  .custom-select-option[aria-selected="true"] > svg { padding: 2px; border-radius: 4px; background: var(--accent-citron); box-sizing: content-box; }
+  .custom-select-option[data-active="true"] { background: #eae3ef; }
+  .custom-select-option[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
 
   .lumina-composer-well {
     background: var(--bg-surface);

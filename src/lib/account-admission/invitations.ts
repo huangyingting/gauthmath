@@ -7,11 +7,11 @@ import { recordAuditLog } from './audit';
 
 const DEFAULT_INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-export type GauthRole = 'ADMIN' | 'TUTOR' | 'STUDENT';
+export type TaviRole = 'ADMIN' | 'TUTOR' | 'STUDENT';
 
 export type CreateAccountInvitationInput = {
   email: string;
-  role?: GauthRole;
+  role?: TaviRole;
   maxUses?: number;
   invitedById?: string;
   invitedByEmail?: string;
@@ -96,7 +96,7 @@ export async function createAccountInvitation(
   const tokenHash = hashOpaqueToken(token);
   const now = new Date();
   const expiresAt = invitationExpiry(now, input.expiresAt, input.ttlHours);
-  const role: GauthRole = input.role || 'STUDENT';
+  const role: TaviRole = input.role || 'STUDENT';
   const maxUses = Math.max(1, Math.min(100, input.maxUses || 1));
 
   try {
@@ -121,7 +121,7 @@ export async function createAccountInvitation(
       throw new AccountAdmissionError(
         409,
         'already_member',
-        'A Gauth account already exists for this email.'
+        'A Tavi account already exists for this email.'
       );
     }
 
@@ -160,7 +160,7 @@ export async function createAccountInvitation(
 
     await recordAuditLog({
       actorId: inviterId || null,
-      actorEmail: input.invitedByEmail || 'admin@gauthmath.com',
+      actorEmail: input.invitedByEmail || 'admin@tavi.test',
       action: 'INVITATION_CREATED',
       targetType: 'AccountInvitation',
       targetId: invitation.id,
@@ -286,7 +286,7 @@ export async function revokeAccountInvitation(
 
   await recordAuditLog({
     actorId: actor?.id || null,
-    actorEmail: actor?.email || 'admin@gauthmath.com',
+    actorEmail: actor?.email || 'admin@tavi.test',
     action: 'INVITATION_REVOKED',
     targetType: 'AccountInvitation',
     targetId: updated.id,
@@ -328,7 +328,7 @@ export async function rotateAccountInvitation(
 
   await recordAuditLog({
     actorId: actor?.id || null,
-    actorEmail: actor?.email || 'admin@gauthmath.com',
+    actorEmail: actor?.email || 'admin@tavi.test',
     action: 'INVITATION_ROTATED',
     targetType: 'AccountInvitation',
     targetId: updated.id,

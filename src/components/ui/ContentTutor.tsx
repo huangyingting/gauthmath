@@ -76,7 +76,7 @@ export function ContentTutor({ endpoint, context, title, placeholder, testPrefix
           <Send className="h-3.5 w-3.5" /><span>{t('Ask')}</span>
         </button>
       </form>
-      <p className="voice-disclosure">{t('Voice uses Azure Speech. Tap the microphone to record up to 30 seconds; audio is not stored by Gauth.')}</p>
+      <p className="voice-disclosure">{t('Voice uses Azure Speech. Tap the microphone to record up to 30 seconds; audio is not stored by Tavi.')}</p>
     </section>
   );
 }

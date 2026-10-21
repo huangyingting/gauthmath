@@ -2,22 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { chatFollowUpWithTutor } from '@/lib/ai/provider';
 import { parseTutorHistory } from '@/lib/tutoring';
+import { getCourses } from '@/lib/page-data';
 
 export async function GET(req: NextRequest) {
   const category = req.nextUrl.searchParams.get('category');
-  const where = category && category !== 'All' ? { category } : {};
-
-  const courses = await prisma.academyCourse.findMany({
-    where,
-    orderBy: { viewsCount: 'desc' },
-  });
-
   return NextResponse.json({
     ok: true,
-    courses: courses.map((c) => ({
-      ...c,
-      slides: JSON.parse(c.chaptersJson || '[]'),
-    })),
+    courses: await getCourses(category),
   });
 }
 

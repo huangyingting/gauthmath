@@ -15,7 +15,7 @@ const monaSans = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Gauth — A clearer way to learn',
+  title: 'Tavi — A clearer way to learn',
   description:
     'Deterministic Computer Algebra System (CAS) paired with multi-model AI reasoning, interactive 2D graphing, 8-handle OCR crop, Atlas visual essays, and 15-minute STEM courses.',
 };
@@ -28,7 +28,7 @@ export default async function RootLayout({
   const [cookieStore, requestHeaders] = await Promise.all([cookies(), headers()]);
   const locale = getPreferredLocale(cookieStore.get(LOCALE_COOKIE)?.value, requestHeaders.get('accept-language'));
   return (
-    <html lang={locale === 'zh' ? 'zh-CN' : 'en'} className={monaSans.variable}>
+    <html lang={locale === 'zh' ? 'zh-CN' : 'en'} className={monaSans.variable} data-scroll-behavior="smooth">
       <body className="min-h-screen bg-atelier-canvas font-sans text-atelier-ink antialiased">
         <LanguageProvider initialLocale={locale}>
           <AppShell>{children}</AppShell>

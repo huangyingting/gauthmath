@@ -20,7 +20,7 @@ export type InvitationRegistrationInput = {
 function normalizedName(name: string | null | undefined, email: string): string {
   const value = name?.trim();
   if (value) return value.slice(0, 120);
-  return email.split('@')[0] || 'Gauth Learner';
+  return email.split('@')[0] || 'Tavi Learner';
 }
 
 export async function registerWithInvitation(
@@ -115,7 +115,7 @@ export async function registerWithInvitation(
       throw new AccountAdmissionError(
         409,
         'already_member',
-        'A Gauth account already exists for this email.'
+        'A Tavi account already exists for this email.'
       );
     }
 

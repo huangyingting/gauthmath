@@ -77,7 +77,7 @@ CREATE TABLE "AccountInvitation" (
 CREATE TABLE "AuditLog" (
     "id" TEXT NOT NULL,
     "actorId" TEXT,
-    "actorEmail" TEXT NOT NULL DEFAULT 'system@gauthmath.com',
+    "actorEmail" TEXT NOT NULL DEFAULT 'system@tavi.test',
     "action" TEXT NOT NULL,
     "targetType" TEXT NOT NULL,
     "targetId" TEXT,
@@ -93,7 +93,7 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "emailVerified" TIMESTAMP(3),
-    "name" TEXT NOT NULL DEFAULT 'Gauth Learner',
+    "name" TEXT NOT NULL DEFAULT 'Tavi Learner',
     "image" TEXT,
     "role" TEXT NOT NULL DEFAULT 'STUDENT',
     "status" TEXT NOT NULL DEFAULT 'ACTIVE',

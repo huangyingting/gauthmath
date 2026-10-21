@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: gauth_user
-      POSTGRES_PASSWORD: gauth_password
-      POSTGRES_DB: gauthmath
+      POSTGRES_USER: tavi_user
+      POSTGRES_PASSWORD: tavi_password
+      POSTGRES_DB: tavi
     ports:
       - "5432:5432"
     volumes:
@@ -18,9 +18,9 @@ services:
       - "3456:3456"
     environment:
       PORT: "3456"
-      DATABASE_URL: "postgresql://gauth_user:gauth_password@postgres:5432/gauthmath?schema=public"
+      DATABASE_URL: "postgresql://tavi_user:tavi_password@postgres:5432/tavi?schema=public"
       NEXTAUTH_URL: "http://localhost:3456"
-      NEXTAUTH_SECRET: "production-gauthmath-secret-replace-me"
+      NEXTAUTH_SECRET: "production-tavi-secret-replace-me"
       ACCOUNT_ADMISSION_MODE: "invitation-only"
       AI_PROVIDER: "auto"
       COPILOT_MODEL: "gpt-5.6-terra"

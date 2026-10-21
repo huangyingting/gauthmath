@@ -85,7 +85,7 @@ model AccountInvitation {
 model AuditLog {
   id           String   @id @default(cuid())
   actorId      String?
-  actorEmail   String   @default("system@gauthmath.com")
+  actorEmail   String   @default("system@tavi.test")
   action       String
   targetType   String
   targetId     String?
@@ -103,7 +103,7 @@ model User {
   id                     String    @id @default(cuid())
   email                  String    @unique
   emailVerified          DateTime?
-  name                   String    @default("Gauth Learner")
+  name                   String    @default("Tavi Learner")
   image                  String?
   role                   String    @default("STUDENT")
   status                 String    @default("ACTIVE")

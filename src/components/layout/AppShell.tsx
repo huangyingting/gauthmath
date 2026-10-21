@@ -9,9 +9,9 @@ import {
   Sparkles, Calculator, Compass, GraduationCap, BookOpen, PenTool,
   Crown, Shield, Menu, X, Search, LogOut, ChevronDown, ArrowUpRight,
 } from 'lucide-react';
-import { GauthPlusModal } from '@/components/modals/GauthPlusModal';
+import { TaviPlusModal } from '@/components/modals/TaviPlusModal';
 
-export const GAUTH_SUBJECTS = [
+export const TAVI_SUBJECTS = [
   'Math', 'Physics', 'Chemistry', 'Biology', 'Writing', 'Literature',
   'Business', 'Computer Science', 'Statistics', 'Economics', 'Social Science', 'Accounting',
 ] as const;
@@ -90,11 +90,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <a href="#main-content" className="skip-link">{t("Skip to content")}</a>
       <header className="site-header">
         <div className="header-inner">
-          <Link href="/" className="brand" aria-label={t("Gauth home")} data-testid="gauth-brand-logo">
+          <Link href="/" className="brand" aria-label={t("Tavi home")} data-testid="tavi-brand-logo">
             <svg className="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
               <path d="M16 2C16 11 11 16 2 16C11 16 16 21 16 30C16 21 21 16 30 16C21 16 16 11 16 2Z" fill="currentColor" />
             </svg>
-            <span className="brand-name">gauth</span>
+            <span className="brand-name">Tavi</span>
             <span className="brand-caption">{t("A clearer way to learn.")}</span>
           </Link>
 
@@ -153,7 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               type="button"
               onClick={() => setPlusModalOpen(true)}
               className="header-plus"
-              data-testid="open-gauth-plus-btn"
+              data-testid="open-tavi-plus-btn"
             >
               <Crown className="h-3.5 w-3.5" aria-hidden="true" />
               {planTier === 'PLUS' ? t('PLUS Active') : t('Go Plus')}
@@ -237,7 +237,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               setPlusModalOpen(true);
             }}
           >
-            <Crown className="h-4 w-4" /> {planTier === 'PLUS' ? t('Manage Plus') : t('Discover Gauth Plus')}
+            <Crown className="h-4 w-4" /> {planTier === 'PLUS' ? t('Manage Plus') : t('Discover Tavi Plus')}
           </button>
           {sessionUser && (
             <button type="button" className="text-button" onClick={() => signOut({ callbackUrl: '/auth' })}>{t("Sign out")}</button>
@@ -249,7 +249,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <footer className="site-footer">
         <div className="footer-inner">
-          <div><strong className="font-semibold text-atelier-ink">gauth</strong><span className="ml-3">{t("A little clarity goes a long way.")}</span></div>
+          <div><strong className="font-semibold text-atelier-ink">Tavi</strong><span className="ml-3">{t("A little clarity goes a long way.")}</span></div>
           <div className="footer-links">
             <Link href="/aboutus">{t("About")}</Link>
             <Link href="/blog">{t("Journal")}</Link>
@@ -261,7 +261,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </footer>
 
-      <GauthPlusModal
+      <TaviPlusModal
         isOpen={plusModalOpen}
         onClose={() => setPlusModalOpen(false)}
         currentTier={planTier}

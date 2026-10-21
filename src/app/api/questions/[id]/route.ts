@@ -3,53 +3,24 @@ import { prisma } from '@/lib/prisma';
 import { chatFollowUpWithTutor } from '@/lib/ai/provider';
 import { getActiveSessionUser } from '@/lib/server-session';
 import { getQuestionVerification, type TutorMode } from '@/lib/tutoring';
+import { getSolutionPageData } from '@/lib/page-data';
 
 export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const question = await prisma.homeworkQuestion.findFirst({
-    where: {
-      OR: [{ id }, { slug: id }],
-    },
-  });
-
-  if (!question) {
+  const data = await getSolutionPageData(id);
+  if (!data) {
     return NextResponse.json(
       { ok: false, error: 'Solution not found.' },
       { status: 404 }
     );
   }
 
-  const related = await prisma.homeworkQuestion.findMany({
-    where: {
-      subject: question.subject,
-      id: { not: question.id },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 4,
-  });
-
   return NextResponse.json({
     ok: true,
-    question: {
-      ...question,
-      ...getQuestionVerification(question),
-      steps: JSON.parse(question.stepsJson || '[]'),
-      keyConcepts: (() => {
-        try {
-          return JSON.parse(question.deepThinkingText || '[]');
-        } catch {
-          return [];
-        }
-      })(),
-      graphConfig: question.graphConfigJson
-        ? JSON.parse(question.graphConfigJson)
-        : null,
-      followUpMessages: JSON.parse(question.followUpMessagesJson || '[]'),
-    },
-    relatedQuestions: related,
+    ...data,
   });
 }
 
@@ -116,7 +87,7 @@ export async function PATCH(
             }
           : {
               role: 'tutor',
-              author: 'Gauth Tutor Escalation Queue (Automated Pre-Check)',
+              author: 'Tavi Tutor Escalation Queue (Automated Pre-Check)',
               text: `Ticket queued for an authenticated human tutor; this is not a completed human review. Automated check: ${getQuestionVerification(fresh).verificationStatus}. Share which step you want annotated!`,
               timestamp: new Date().toISOString(),
             }

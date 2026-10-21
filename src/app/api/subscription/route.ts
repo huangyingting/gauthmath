@@ -2,38 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getActiveOrDemoUser } from '@/lib/server-session';
 import { recordAuditLog } from '@/lib/account-admission';
+import { getSubscriptionData } from '@/lib/page-data';
 
 export async function GET() {
-  const user = await getActiveOrDemoUser();
-  if (!user) {
-    return NextResponse.json({
-      ok: true,
-      user: null,
-      subscription: {
-        planTier: 'FREE',
-        billingCycle: 'yearly',
-        freeQueriesRemaining: 3,
-        aiProRemaining: 1,
-        courseCreditsRemaining: 3,
-      },
-    });
-  }
-
   return NextResponse.json({
     ok: true,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    },
-    subscription: {
-      planTier: user.planTier,
-      billingCycle: user.billingCycle,
-      freeQueriesRemaining: user.freeQueriesRemaining,
-      aiProRemaining: user.aiProRemaining,
-      courseCreditsRemaining: user.courseCreditsRemaining,
-    },
+    ...await getSubscriptionData(),
   });
 }
 

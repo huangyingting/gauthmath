@@ -10,7 +10,7 @@ export default function AboutUsPage() {
     <div className="page-container" data-testid="aboutus-page">
       <div>
         <div className="page-heading">
-        <span className="eyebrow text-atelier-vermilion">{t("About Gauth / Made for the moment it clicks")}</span>
+        <span className="eyebrow text-atelier-vermilion">{t("About Tavi / Made for the moment it clicks")}</span>
         <h1>{t("Understanding changes everything.")}</h1>
         <p className="mt-4 text-atelier-muted">{t("We bring symbolic math, clear explanations, and interactive learning into one thoughtful space. Not to skip the thinking, but to help you find your way through it.")}</p>
         </div>

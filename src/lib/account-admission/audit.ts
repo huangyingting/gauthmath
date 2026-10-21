@@ -14,7 +14,7 @@ export async function recordAuditLog(input: RecordAuditLogInput) {
   return prisma.auditLog.create({
     data: {
       actorId: input.actorId || null,
-      actorEmail: input.actorEmail || 'system@gauthmath.com',
+      actorEmail: input.actorEmail || 'system@tavi.test',
       action: input.action,
       targetType: input.targetType,
       targetId: input.targetId || null,

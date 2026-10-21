@@ -37,7 +37,7 @@ const config: Config = {
           citron: '#D9EDAA',
           lilac: '#EAE3EF',
         },
-        gauth: {
+        tavi: {
           red: '#6A496B',
           coral: '#946F89',
           dark: '#322438',

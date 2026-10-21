@@ -66,7 +66,7 @@ export async function synthesizeSpeech(text: string, locale: Locale, signal?: Ab
       'Ocp-Apim-Subscription-Key': config.key,
       'Content-Type': 'application/ssml+xml',
       'X-Microsoft-OutputFormat': config.format,
-      'User-Agent': 'GauthLearningStudio',
+      'User-Agent': 'TaviLearningStudio',
     },
     body: buildSpeechSsml(plainText, locale, config.voice),
   }, signal);

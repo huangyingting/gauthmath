@@ -5,7 +5,7 @@ import type { LocalizedMessage } from '@/lib/i18n';
 import React, { useState } from 'react';
 import { X, Crown, Check, Sparkles, ShieldCheck, Zap } from 'lucide-react';
 
-interface GauthPlusModalProps {
+interface TaviPlusModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentTier?: string;
@@ -39,12 +39,12 @@ const PRICING_PLANS = [
   },
 ];
 
-export function GauthPlusModal({
+export function TaviPlusModal({
   isOpen,
   onClose,
   currentTier = 'FREE',
   onUpgradeSuccess,
-}: GauthPlusModalProps) {
+}: TaviPlusModalProps) {
   const { t } = useI18n();
   const [selectedCycle, setSelectedCycle] = useState('yearly');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,7 +66,7 @@ export function GauthPlusModal({
       const data = await res.json();
       if (data.ok) {
         setUpgradedMessage({
-          key: 'Welcome to Gauth PLUS ({cycle})! Unlimited step-by-step solutions and 20 AI Pro Super Tutor credits unlocked.',
+          key: 'Welcome to Tavi PLUS ({cycle})! Unlimited step-by-step solutions and 20 AI Pro Super Tutor credits unlocked.',
           values: { cycle: selectedCycle.toUpperCase() },
         });
         onUpgradeSuccess?.('PLUS', selectedCycle);
@@ -79,7 +79,7 @@ export function GauthPlusModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
-      data-testid="gauth-plus-modal"
+      data-testid="tavi-plus-modal"
       role="dialog"
       aria-modal="true"
       aria-labelledby="plus-modal-title"
@@ -91,7 +91,7 @@ export function GauthPlusModal({
             type="button"
             onClick={onClose}
             className="absolute right-5 top-5 rounded-md p-2 text-atelier-muted hover:bg-atelier-subtle"
-            aria-label={t("Close Gauth PLUS Modal")}
+            aria-label={t("Close Tavi PLUS Modal")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -104,7 +104,7 @@ export function GauthPlusModal({
               <div className="flex items-center gap-2 pr-8">
                 <span id="plus-modal-title" className="text-2xl font-semibold tracking-tight">{t("A little more possibility.")}</span>
               </div>
-              <p className="mt-2 text-sm text-atelier-muted">{t("Gauth Plus / More room for your curiosity.")}</p>
+              <p className="mt-2 text-sm text-atelier-muted">{t("Tavi Plus / More room for your curiosity.")}</p>
             </div>
           </div>
         </div>
@@ -168,9 +168,9 @@ export function GauthPlusModal({
           <div className="mt-6 grid grid-cols-1 gap-4 border-y border-atelier-border py-6 sm:grid-cols-2">
             {[
               'Unlimited step-by-step homework solutions & study bank access',
-              '20 Gauth AI Pro Super Tutor deep-reasoning sessions / month',
+              '20 Tavi AI Pro Super Tutor deep-reasoning sessions / month',
               '24/7 Live Human Verified Expert Tutor escalation',
-              'Unlimited Gauth Academy 3D visual courses & Writing Helper',
+              'Unlimited Tavi Academy 3D visual courses & Writing Helper',
             ].map((item, idx) => (
               <div key={idx} className="flex items-start gap-2 text-xs text-slate-700">
                 <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
@@ -192,13 +192,13 @@ export function GauthPlusModal({
               type="button"
               onClick={handleSubscribe}
               disabled={isSubmitting}
-              data-testid="activate-gauth-plus-btn"
+              data-testid="activate-tavi-plus-btn"
               className="primary-button w-full sm:w-auto"
             >
               <Zap className="h-4 w-4" />
               {isSubmitting
-                ? t('Activating Gauth PLUS...')
-                : t('Upgrade to Gauth PLUS ({cycle})', { cycle: t(selectedCycle.toUpperCase()) })}
+                ? t('Activating Tavi PLUS...')
+                : t('Upgrade to Tavi PLUS ({cycle})', { cycle: t(selectedCycle.toUpperCase()) })}
             </button>
           </div>
         </div>

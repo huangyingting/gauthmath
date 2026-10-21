@@ -2343,7 +2343,7 @@ function trySolveStemConcept(raw: string): MathSolutionResult | null {
 }
 
 /**
- * Primary entry point for the Gauth Hybrid Symbolic CAS & STEM Solver.
+ * Primary entry point for the Tavi Hybrid Symbolic CAS & STEM Solver.
  */
 export function solveMathOrStemProblem(
   rawPrompt: string,
@@ -2592,7 +2592,7 @@ export function solveMathOrStemProblem(
       {
         title: 'Supported Symbolic & Quantitative Problem Classes',
         formula: 'f(x) = 0, \\quad \\frac{d}{dx}f(x), \\quad \\int_a^b f(x)\\,dx, \\quad \\lim_{x\\to a} f(x)',
-        description: 'Gauthmath verifies solutions by symbolic identity or numerical substitution.',
+        description: 'Tavi verifies solutions by symbolic identity or numerical substitution.',
       },
     ],
     graphExpression: null,

@@ -139,19 +139,21 @@ async function main() {
         : route.fulfill({ json: { ok: true, document: { id: 'test-draft', title: 'Revised draft', genre: 'Research Paper', contentText: 'The revised sentence is clearer.', aiScore: 80, annotations: [{ paragraph: 1, type: 'Clarity', comment: 'Keep the subject specific.' }], isCuratedExample: false } } });
     });
     await page.getByTestId('writing-content-input').fill('These is a full sentence in my draft that needs checking.');
-    await page.getByTestId('writing-action').selectOption('grammar');
+    await page.getByTestId('writing-action').click();
+    await page.getByRole('option', { name: 'Check grammar', exact: true }).click();
     await page.getByTestId('writing-grade-btn').click();
     await page.getByRole('alert').filter({ hasText: 'unavailable' }).waitFor();
     assert.equal(writingAction, 'grammar');
     assert.ok((await page.getByTestId('writing-content-input').inputValue()).includes('These is'));
-    await page.getByTestId('writing-action').selectOption('polish');
+    await page.getByTestId('writing-action').click();
+    await page.getByRole('option', { name: 'Polish the wording', exact: true }).click();
     await page.getByTestId('writing-grade-btn').click();
     await page.getByTestId('writing-reader-title').filter({ hasText: 'Revised draft' }).waitFor();
     assert.equal(writingAction, 'polish');
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('writing-export-feedback').click();
     const download = await downloadPromise;
-    assert.equal(download.suggestedFilename(), 'gauth-writing-feedback.md');
+    assert.equal(download.suggestedFilename(), 'tavi-writing-feedback.md');
     const stream = await download.createReadStream();
     assert.ok(stream);
     let exported = '';
@@ -260,7 +262,7 @@ async function main() {
     }
 
     for (const locale of ['en', 'zh']) {
-      await context.addCookies([{ name: 'gauth-locale', value: locale, url: base }]);
+      await context.addCookies([{ name: 'tavi-locale', value: locale, url: base }]);
       for (const width of [360, 1440]) {
         await page.setViewportSize({ width, height: 1000 });
         for (const path of ['/', `/solution/${question.id}`, '/calculator', '/course', '/atlas', '/search-question', '/writing-examples']) {

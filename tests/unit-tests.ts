@@ -59,7 +59,7 @@ import { NextRequest } from 'next/server';
 import { prisma } from '../src/lib/prisma';
 
 async function runUnitTests() {
-  console.log('=== Running Gauthmath Production Unit & Regression Suite (R01–R29) ===\n');
+  console.log('=== Running Tavi Production Unit & Regression Suite (R01–R29) ===\n');
 
   // Suite 1: Database Migration Completeness (R29)
   console.log('1. Verifying Canonical SQL Migration (R29 - All 11 Prisma Models)...');
@@ -318,13 +318,13 @@ async function runUnitTests() {
   assert.equal(await verifyPassword('ValidPassword123!', hashed), true);
 
   const boot = await bootstrapAdmin({
-    email: 'admin@gauthmath.com',
+    email: 'admin@tavi.test',
     password: 'AdminPassword123!',
-    name: 'Gauth Platform Administrator',
+    name: 'Tavi Platform Administrator',
   });
   assert.equal(boot.user.role, 'ADMIN');
 
-  const raceEmail = `race-${Date.now()}@gauthmath.com`;
+  const raceEmail = `race-${Date.now()}@tavi.test`;
   const raceGrant = await createAccountInvitation({
     email: raceEmail,
     role: 'TUTOR',
@@ -358,7 +358,7 @@ async function runUnitTests() {
   assert.equal(rejected.length, 1, 'Expected concurrent duplicate redemption to be rejected');
 
   const revokeGrant = await createAccountInvitation({
-    email: `revoke-${Date.now()}@gauthmath.com`,
+    email: `revoke-${Date.now()}@tavi.test`,
     role: 'STUDENT',
   });
   const revoked = await revokeAccountInvitation(revokeGrant.invitation.id);

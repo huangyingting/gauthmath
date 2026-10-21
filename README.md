@@ -1,6 +1,6 @@
-# Gauth AI Study Companion & STEM Homework Platform
+# Tavi
 
-A full-stack Next.js 16 + Auth.js/NextAuth + Prisma 7 study-platform prototype informed by browser exploration of `https://www.gauthmath.com`. It includes an initial mathjs-based solver, SVG graphing, Copilot/Azure completion helpers, and invitation-management workflows.
+A bilingual learning studio built with Next.js 16, NextAuth, and Prisma 7. Tavi connects independently checked STEM calculations, interactive graphs, contextual tutoring, voice, courses, and writing feedback so learners can understand the reasoning rather than only receive an answer.
 
 **Implementation status:** Production-grade core system verified (`C01`–`C12` resolved and all 29 regression cases `R01`–`R29` passing in isolated unit/integration tests and full-stack Playwright E2E suites). Live AI model execution is wired to Azure OpenAI (`gpt-6.1-sol` for STEM/writing reasoning, `gpt-5.6-terra` for multimodal Vision OCR) and `@github/copilot-sdk` (`gpt-5.6-terra`), with deterministic verification via the Symbolic CAS & Numerical Engine (`src/lib/math-engine/`). See the [core review](./docs/07_CORE_SYSTEM_REVIEW.md) and [improvement plan](./docs/08_CORE_SYSTEM_IMPROVEMENT_PLAN.md).
 
@@ -10,7 +10,7 @@ A full-stack Next.js 16 + Auth.js/NextAuth + Prisma 7 study-platform prototype i
 
 All architectural, product, algorithm, and parity documents live in `docs/`:
 
-- [`docs/00_EXPLORATION_COVERAGE.md`](./docs/00_EXPLORATION_COVERAGE.md) — Systematic Playwright exploration across Desktop (`1440×900`), Tablet (`768×1024`), and Mobile (`390×844`) viewports, 26 captured screenshots in `screenshots/`, and 1,067 network/API telemetry events.
+- [`docs/00_EXPLORATION_COVERAGE.md`](./docs/00_EXPLORATION_COVERAGE.md) — Tavi route, interaction, and responsive screenshot coverage.
 - [`docs/01_ADR.md`](./docs/01_ADR.md) — Architecture Decision Records (Hybrid Symbolic + LLM pipeline, Pluggable AI SDK, Dual SQLite/PostgreSQL Prisma 7 adapters, CLI-only admin bootstrap).
 - [`docs/02_PRD.md`](./docs/02_PRD.md) — Product Requirements Document covering all 12 subjects, user personas, and workflows.
 - [`docs/03_TECHNICAL_SPEC.md`](./docs/03_TECHNICAL_SPEC.md) — Deep dive into the Symbolic Math/STEM Solver, Adaptive 2D Function Grapher, OCR Cropper, and Pluggable AI Adapter.
@@ -33,7 +33,7 @@ npx prisma db push
 npm run db:seed
 
 # 3. Bootstrap or promote a root ADMIN account via CLI (no HTTP bootstrap endpoint exists)
-npm run bootstrap:admin -- --email=admin@gauthmath.com --password='AdminPassword123!' --name='Platform Admin'
+npm run bootstrap:admin -- --email=admin@tavi.test --password='AdminPassword123!' --name='Platform Admin'
 
 # 4. Run the 10-suite production unit & regression suite (R01–R29) against an isolated test.db
 npm run test:unit
@@ -71,4 +71,4 @@ AZURE_OPENAI_API_VERSION="2025-04-01-preview"
 ## 4. Database Configuration (SQLite Local Dev & PostgreSQL Production)
 
 - **Local Development (SQLite)**: `prisma/schema.prisma` with `@prisma/adapter-better-sqlite3` (`DATABASE_URL="file:./dev.db"`).
-- **Production (PostgreSQL)**: `prisma/schema.postgres.prisma` with `@prisma/adapter-pg` (`DATABASE_URL="postgresql://user:pass@host:5432/gauthmath"`).
+- **Production (PostgreSQL)**: `prisma/schema.postgres.prisma` with `@prisma/adapter-pg` (`DATABASE_URL="postgresql://user:pass@host:5432/tavi"`).

@@ -2,30 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { analyzeWritingDocument, WritingServiceUnavailableError } from '@/lib/ai/provider';
 import { getActiveOrDemoUser } from '@/lib/server-session';
+import { getWritingDocuments } from '@/lib/page-data';
 
 export async function GET(req: NextRequest) {
   const genre = req.nextUrl.searchParams.get('genre');
-  const user = await getActiveOrDemoUser();
-  const andClauses: Record<string, unknown>[] = [
-    user
-      ? { OR: [{ isCuratedExample: true }, { userId: user.id }] }
-      : { isCuratedExample: true },
-  ];
-  if (genre && genre !== 'All') {
-    andClauses.push({ genre });
-  }
-
-  const documents = await prisma.writingDocument.findMany({
-    where: { AND: andClauses },
-    orderBy: { createdAt: 'desc' },
-  });
-
   return NextResponse.json({
     ok: true,
-    documents: documents.map((d) => ({
-      ...d,
-      annotations: JSON.parse(d.annotationsJson || '[]'),
-    })),
+    documents: await getWritingDocuments(genre),
   });
 }
 

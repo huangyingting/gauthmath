@@ -2,6 +2,7 @@
 
 import { useI18n } from '@/components/i18n/LanguageProvider';
 import type { LocalizedMessage } from '@/lib/i18n';
+import { Select } from '@/components/ui/Select';
 import React, { useState, useEffect } from 'react';
 import {
   Shield,
@@ -67,15 +68,10 @@ export default function AdminDashboardPage() {
 
   const ADMIN_HEADERS = {
     'Content-Type': 'application/json',
-    'x-gauth-admin-secret': 'gauthmath-super-secret-nextauth-key-2026',
   };
 
   const loadAdminData = async () => {
-    const res = await fetch('/api/admin', {
-      headers: {
-        'x-gauth-admin-secret': 'gauthmath-super-secret-nextauth-key-2026',
-      },
-    });
+    const res = await fetch('/api/admin');
     const data = await res.json();
     if (!res.ok || !data.ok) {
       setAuthError(data.error || 'Access denied');
@@ -295,19 +291,14 @@ export default function AdminDashboardPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700">{t("Assigned Role")}</label>
-                <select
+                <label htmlFor="admin-invite-role" className="block text-xs font-bold text-slate-700">{t("Assigned Role")}</label>
+                <Select id="admin-invite-role"
                   value={inviteRole}
-                  onChange={(e) =>
-                    setInviteRole(e.target.value as 'STUDENT' | 'TUTOR' | 'ADMIN')
-                  }
+                  onValueChange={setInviteRole}
                   data-testid="admin-invite-role-select"
-                  className="lumina-input mt-2 w-full px-3 py-3 text-sm"
-                >
-                  <option value="STUDENT">{t("STUDENT")}</option>
-                  <option value="TUTOR">{t("TUTOR")}</option>
-                  <option value="ADMIN">{t("ADMIN")}</option>
-                </select>
+                  className="mt-2 w-full"
+                  options={[{ value: 'STUDENT', label: t('STUDENT') }, { value: 'TUTOR', label: t('TUTOR') }, { value: 'ADMIN', label: t('ADMIN') }]}
+                />
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700">{t("Expiration (Hours)")}</label>
@@ -444,18 +435,14 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <select
+                  <Select
                     value={u.role}
-                    onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
+                    onValueChange={role => void handleUpdateUserRole(u.id, role)}
                     aria-label={t('Role for {email}', { email: u.email })}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700"
-                  >
-                    <option value="STUDENT">{t("STUDENT")}</option>
-                    <option value="TUTOR">{t("TUTOR")}</option>
-                    <option value="ADMIN">{t("ADMIN")}</option>
-                  </select>
+                    options={[{ value: 'STUDENT', label: t('STUDENT') }, { value: 'TUTOR', label: t('TUTOR') }, { value: 'ADMIN', label: t('ADMIN') }]}
+                  />
 
-                  {u.email !== 'admin@gauthmath.com' && (
+                  {u.email !== 'admin@tavi.test' && (
                     <button
                       type="button"
                       onClick={() => handleToggleUserRevoke(u)}

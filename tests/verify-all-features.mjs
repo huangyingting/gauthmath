@@ -26,11 +26,11 @@ async function verifyAllFeatures() {
     // 1. Verify Security Invariant: No HTTP Bootstrap Admin API exists
     console.log('1. Verifying Security Invariant (No HTTP Bootstrap Admin Endpoint)...');
     const bootstrapRes1 = await page.request.post(`${BASE_URL}/api/bootstrap-admin`, {
-      data: { email: 'hacker@gauthmath.com', password: 'Password123!' },
+      data: { email: 'hacker@tavi.test', password: 'Password123!' },
     });
     assert.equal(bootstrapRes1.status(), 404, 'HTTP /api/bootstrap-admin endpoint must not exist');
     const bootstrapRes2 = await page.request.post(`${BASE_URL}/api/auth/bootstrap-admin`, {
-      data: { email: 'hacker@gauthmath.com', password: 'Password123!' },
+      data: { email: 'hacker@tavi.test', password: 'Password123!' },
     });
     assert.ok(
       bootstrapRes2.status() === 400 || bootstrapRes2.status() === 404,
@@ -38,7 +38,7 @@ async function verifyAllFeatures() {
     );
     console.log('   ✓ HTTP bootstrap endpoints return 404/400 (CLI-only invariant enforced)');
 
-    // 2. Verify Home Page (/): Subject Tabs, Math Keyboard Modal, Image Crop Modal, Gauth PLUS Modal, AI Solver
+    // 2. Verify Home Page (/): Subject Tabs, Math Keyboard Modal, Image Crop Modal, Tavi PLUS Modal, AI Solver
     console.log('2. Testing Home Page (/): Subject Tabs, Modals, and Homework Solver...');
     await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
     await page.getByTestId('homework-composer-card').waitFor();
@@ -96,14 +96,14 @@ async function verifyAllFeatures() {
     assert.ok(populatedVal.length > 0, `Expected OCR preset in textarea, got: ${populatedVal}`);
     console.log('   ✓ Image Crop & OCR Modal verified');
 
-    // Test Gauth PLUS Modal from Navbar
-    await page.getByTestId('open-gauth-plus-btn').click();
-    await page.getByTestId('gauth-plus-modal').waitFor();
+    // Test Tavi PLUS Modal from Navbar
+    await page.getByTestId('open-tavi-plus-btn').click();
+    await page.getByTestId('tavi-plus-modal').waitFor();
     await page.getByTestId('plan-card-yearly').click();
     await page.getByTestId('plan-card-quarterly').click();
-    // Close modal via close button inside gauth-plus-modal
-    await page.locator('[data-testid="gauth-plus-modal"] button').first().click();
-    console.log('   ✓ Gauth PLUS Subscription Modal verified');
+    // Close modal via close button inside tavi-plus-modal
+    await page.locator('[data-testid="tavi-plus-modal"] button').first().click();
+    console.log('   ✓ Tavi PLUS Subscription Modal verified');
 
     // Submit a quadratic homework problem from Home Page -> renders instant solution + link to /solution/[id]
     await page.getByTestId('homework-prompt-input').fill('Solve x^2 - 5x + 6 = 0');
@@ -126,12 +126,10 @@ async function verifyAllFeatures() {
     console.log('3. Testing Solution Detail Page (/solution/[id])...');
     const chemistryHint = String.raw`**Hint:** HCl dissociates completely, so \([H^+] = 0.0001 = 10^{-4}\,\text{M}\); use \(\text{pH} = -\log_{10}[H^+]\).`;
     await page.route('**/api/questions/*', async route => {
-      const response = await route.fetch();
-      const data = await response.json();
-      data.question.followUpMessages.push({ role: 'assistant', text: chemistryHint });
-      await route.fulfill({ response, json: data });
+      await route.fulfill({ json: { ok: true, followUpMessages: [{ role: 'assistant', text: chemistryHint }] } });
     }, { times: 1 });
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByTestId('followup-chat-input').fill('Explain this chemistry hint.');
+    await page.getByTestId('followup-chat-send-btn').click();
     const renderedHint = page.getByTestId('followup-tutor-chat').locator('.rich-text').filter({ has: page.locator('strong', { hasText: 'Hint:' }) });
     await renderedHint.waitFor();
     assert.equal(await renderedHint.locator('.katex-html').count(), 2, 'Both equations in the reported chemistry hint must render');
@@ -213,7 +211,7 @@ async function verifyAllFeatures() {
     assert.ok(scoreText && scoreText.includes('/ 100'), `Expected rubric score, got ${scoreText}`);
     console.log('   ✓ AI Writing Studio rubric evaluation verified (Score:', scoreText.trim(), ')');
 
-    // 10. Test Gauth PLUS Pricing Page (/plus), Blog (/blog), Download (/download), About (/aboutus), Honor Code (/honor)
+    // 10. Test Tavi PLUS Pricing Page (/plus), Blog (/blog), Download (/download), About (/aboutus), Honor Code (/honor)
     console.log('10. Testing Pricing (/plus), Blog (/blog), Download (/download), About (/aboutus), Honor (/honor)...');
     await page.goto(`${BASE_URL}/plus`, { waitUntil: 'networkidle' });
     await page.getByTestId('plus-page').waitFor();
@@ -235,7 +233,7 @@ async function verifyAllFeatures() {
     // PART 2: Invite-Only Registration, NextAuth Sign-In, & Admin Console
     // -------------------------------------------------------------------------
     console.log('11. Testing Invite-Only Registration Flow (/invite/[token] & /auth)...');
-    await page.goto(`${BASE_URL}/invite/GAUTH-2026-EXPD`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE_URL}/invite/TAVI-2026-EXPD`, { waitUntil: 'networkidle' });
     await page.getByTestId('invite-redemption-page').waitFor();
     const expiredBody = await page.getByTestId('invite-redemption-page').textContent();
     assert.ok(expiredBody.toLowerCase().includes('expired'), 'Expected expired invite status');
@@ -243,7 +241,7 @@ async function verifyAllFeatures() {
     // Sign in as Admin via /auth
     console.log('12. Testing Admin Sign-In & Governance Console (/admin)...');
     await page.goto(`${BASE_URL}/auth`, { waitUntil: 'networkidle' });
-    await page.getByTestId('signin-email-input').fill('admin@gauthmath.com');
+    await page.getByTestId('signin-email-input').fill('admin@tavi.test');
     await page.getByTestId('signin-password-input').fill('AdminPassword123!');
     await page.getByTestId('signin-submit-btn').click();
     await page.getByTestId('auth-signin-success').waitFor({ timeout: 15000 });
@@ -258,13 +256,13 @@ async function verifyAllFeatures() {
     await page.getByTestId('switch-ai-auto-btn').click();
 
     // Issue a brand-new single-use invitation from Admin Console
-    const e2eInviteEmail = `e2e-student-${Date.now()}@gauthmath.com`;
+    const e2eInviteEmail = `e2e-student-${Date.now()}@tavi.test`;
     await page.getByTestId('admin-invite-email-input').fill(e2eInviteEmail);
     await page.getByTestId('admin-create-invite-btn').click();
     await page.getByTestId('admin-created-invite-banner').waitFor({ timeout: 10000 });
     const bannerText = await page.getByTestId('admin-created-invite-banner').textContent();
-    const codeMatch = bannerText?.match(/GAUTH-[A-Z0-9]{4}-[A-Z0-9]{4}/);
-    assert.ok(codeMatch, `Expected GAUTH-* code in banner, got: ${bannerText}`);
+    const codeMatch = bannerText?.match(/TAVI-[A-Z0-9]{4}-[A-Z0-9]{4}/);
+    assert.ok(codeMatch, `Expected TAVI-* code in banner, got: ${bannerText}`);
     const issuedCode = codeMatch[0];
     console.log('   ✓ Admin issued single-use invitation code:', issuedCode);
 
@@ -330,22 +328,22 @@ async function verifyAllFeatures() {
     await languagePage.reload({ waitUntil: 'networkidle' });
     assert.equal(await languagePage.locator('html').getAttribute('lang'), 'en', 'Explicit selection must override browser language after reload');
     await languagePage.getByTestId('language-toggle').click();
-    const localeCookie = (await languageContext.cookies()).find(cookie => cookie.name === 'gauth-locale');
+    const localeCookie = (await languageContext.cookies()).find(cookie => cookie.name === 'tavi-locale');
     assert.equal(localeCookie?.value, 'zh');
     await languagePage.getByTestId('nav-link-writing-examples').click();
     await languagePage.waitForURL(/\/writing-examples$/);
-    await languagePage.locator('#writing-genre').selectOption('Research Paper');
-    assert.equal(await languagePage.locator('#writing-genre').inputValue(), 'Research Paper');
-    assert.equal(await languagePage.locator('#writing-genre option:checked').textContent(), '研究论文');
+    await languagePage.locator('#writing-genre').click();
+    await languagePage.getByRole('option', { name: '研究论文', exact: true }).click();
+    assert.equal(await languagePage.locator('#writing-genre').textContent(), '研究论文');
     await languagePage.getByTestId('writing-grade-btn').click();
     await languagePage.getByRole('alert').filter({ hasText: '请先写下草稿' }).waitFor();
     await languagePage.getByTestId('language-toggle').click();
     await languagePage.getByRole('alert').filter({ hasText: 'Add a draft' }).waitFor();
     await languagePage.getByTestId('language-toggle').click();
     await languagePage.goto(`${BASE_URL}/search-question`, { waitUntil: 'networkidle' });
-    await languagePage.locator('#study-bank-subject').selectOption('Physics');
-    assert.equal(await languagePage.locator('#study-bank-subject').inputValue(), 'Physics');
-    assert.equal(await languagePage.locator('#study-bank-subject option:checked').textContent(), '物理');
+    await languagePage.locator('#study-bank-subject').click();
+    await languagePage.getByRole('option', { name: '物理', exact: true }).click();
+    assert.equal(await languagePage.locator('#study-bank-subject').textContent(), '物理');
     await languagePage.goto(`${BASE_URL}/auth`, { waitUntil: 'networkidle' });
     await languagePage.getByTestId('auth-tab-register').click();
     assert.equal(await languagePage.getByTestId('register-submit-btn').textContent(), '使用邀请码并创建账户');

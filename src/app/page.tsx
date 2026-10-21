@@ -7,7 +7,7 @@ import {
   Sparkles, Camera, Calculator, ArrowRight, ArrowUpRight,
   CheckCircle2, ChevronDown, LoaderCircle, MoveUpRight,
 } from 'lucide-react';
-import { GAUTH_SUBJECTS } from '@/components/layout/AppShell';
+import { TAVI_SUBJECTS } from '@/components/layout/AppShell';
 import { MathKeyboardModal } from '@/components/modals/MathKeyboardModal';
 import { ImageCropModal } from '@/components/modals/ImageCropModal';
 import { FunctionGraphSvg } from '@/components/math/FunctionGraphSvg';
@@ -164,7 +164,7 @@ export default function HomePage() {
             <h2 className="composer-title">{t("What are you working on?")}</h2>
 
             <div className="subject-tabs" data-testid="subject-pills-bar" aria-label={t("Choose a subject")}>
-              {GAUTH_SUBJECTS.slice(0, 4).map(subjectButton)}
+              {TAVI_SUBJECTS.slice(0, 4).map(subjectButton)}
               <details
                 className="subject-more"
                 ref={moreSubjectsRef}
@@ -179,10 +179,10 @@ export default function HomePage() {
                 }}
               >
                 <summary>
-                  {GAUTH_SUBJECTS.slice(0, 4).some((subject) => subject === selectedSubject) ? t('More subjects') : t(selectedSubject)}
+                  {TAVI_SUBJECTS.slice(0, 4).some((subject) => subject === selectedSubject) ? t('More subjects') : t(selectedSubject)}
                   <ChevronDown className="h-3 w-3" aria-hidden="true" />
                 </summary>
-                <div className="nav-popover">{GAUTH_SUBJECTS.slice(4).map(subjectButton)}</div>
+                <div className="nav-popover">{TAVI_SUBJECTS.slice(4).map(subjectButton)}</div>
               </details>
             </div>
 
@@ -216,7 +216,7 @@ export default function HomePage() {
                 <span className="editor-count">{prompt.length} / 2000</span>
               </div>
             </div>
-            <p className="voice-disclosure">{t('Voice uses Azure Speech. Tap the microphone to record up to 30 seconds; audio is not stored by Gauth.')}</p>
+            <p className="voice-disclosure">{t('Voice uses Azure Speech. Tap the microphone to record up to 30 seconds; audio is not stored by Tavi.')}</p>
 
             {cropBadge && (
               <div className="composer-alert flex items-center justify-between gap-3 bg-emerald-50 text-emerald-900">

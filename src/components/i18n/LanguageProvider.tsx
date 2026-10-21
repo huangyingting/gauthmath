@@ -19,7 +19,7 @@ export function LanguageProvider({ initialLocale, children }: { initialLocale: L
   }, []);
   useEffect(() => {
     document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
-    document.title = locale === 'zh' ? 'Gauth — 让学习，豁然开朗' : 'Gauth — A clearer way to learn';
+    document.title = locale === 'zh' ? 'Tavi — 让学习，豁然开朗' : 'Tavi — A clearer way to learn';
   }, [locale]);
   const t = useCallback((message: string, values?: Record<string, string | number>) =>
     translate(locale, message, values), [locale]);

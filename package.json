@@ -1,5 +1,5 @@
 {
-  "name": "gauthmath-ai-study-platform",
+  "name": "tavi",
   "version": "2.0.0",
   "private": true,
   "scripts": {
@@ -18,6 +18,7 @@
     "test:i18n": "tsx tests/i18n-tests.ts",
     "test:learning": "tsx tests/learning-features-tests.ts",
     "test:learning:e2e": "tsx tests/learning-features-e2e.ts",
+    "test:ui": "tsx tests/ui-controls-navigation-e2e.ts",
     "test:e2e": "node tests/verify-all-features.mjs"
   },
   "dependencies": {

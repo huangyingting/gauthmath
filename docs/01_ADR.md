@@ -2,7 +2,7 @@
 
 ## ADR-001: Full-Stack Framework — Next.js 16 App Router with TypeScript
 - **Status:** Accepted
-- **Context:** Gauthmath combines SEO-indexed public/authorized educational pages (`/`, `/calculator`, `/study-resources/[subject]`, `/solution/[id]`, `/writing-examples`, `/blog`) with rich interactive client workspaces (`/atlas`, `/course`, `/search-question`, Image Cropper, Symbolic Calculator, and Admin Console).
+- **Context:** Tavi combines SEO-indexed public/authorized educational pages (`/`, `/calculator`, `/study-resources/[subject]`, `/solution/[id]`, `/writing-examples`, `/blog`) with rich interactive client workspaces (`/atlas`, `/course`, `/search-question`, Image Cropper, Symbolic Calculator, and Admin Console).
 - **Decision:** Build the application on **Next.js 16 (App Router)** with React 19 and strict TypeScript. Server Components and Route Handlers (`/api/*`) power data persistence, authentication, and AI orchestration, while Client Components with Zustand state management drive interactive canvases, math keypads, and streaming/stepwise solvers.
 - **Consequences:** Unified repository, zero CORS overhead, fast server-rendered initial loads, and seamless API Route integration with Prisma and NextAuth.
 
@@ -22,7 +22,7 @@
 - **Context:** The application requires Auth.js / NextAuth authentication with invite-only registration, single-use/expiring invitation codes, role-based access control (`ADMIN`, `TUTOR`, `STUDENT`), immediate account revocation, and immutable audit logging. Furthermore, per security policy, **no HTTP bootstrap admin endpoint may ever be exposed**.
 - **Decision:**
   1. **Fail-Closed Admission (`ACCOUNT_ADMISSION_MODE=invitation-only`)**: Public self-registration without a valid invitation token/code is rejected (`403 invitation_required`).
-  2. **Cryptographic Token Hashing**: Invitation tokens are generated with 32 bytes of CSPRNG entropy (`base64url`) alongside human-readable single-use codes (`GAUTH-XXXX-XXXX`). Only SHA-256 `tokenHash` is stored for secret links; upon acceptance, revocation, or expiration, `tokenHash` and `activeForEmail` are cleared.
+  2. **Cryptographic Token Hashing**: Invitation tokens are generated with 32 bytes of CSPRNG entropy (`base64url`) alongside human-readable single-use codes (`TAVI-XXXX-XXXX`). Only SHA-256 `tokenHash` is stored for secret links; upon acceptance, revocation, or expiration, `tokenHash` and `activeForEmail` are cleared.
   3. **CLI-Only Admin Bootstrap (`npm run bootstrap:admin`)**: Root administrator accounts are provisioned exclusively via `scripts/bootstrap-admin.ts` (`--email <email> --password-stdin`). Zero HTTP bootstrap routes exist.
   4. **Immediate Revocation Enforcement**: Every JWT/session callback re-verifies `user.status !== "REVOKED"` against the database, immediately blocking revoked users and logging `REVOKED_USER_LOGIN_BLOCKED` in `AuditLog`.
 - **Consequences:** Eliminates privilege-escalation surfaces while giving administrators full lifecycle control over invitations, user roles, account revocation, and security audit trails.
@@ -51,5 +51,5 @@
 
 ## ADR-006: Client+Server Interactive 8-Handle Image Crop & OCR Math Extraction Pipeline
 - **Status:** Accepted
-- **Context:** A signature Gauthmath workflow is uploading or pasting a homework photo and cropping a single question (`"Crop one question at a time"`) with rotation and zoom before OCR extraction.
+- **Context:** A signature Tavi workflow is uploading or pasting a homework photo and cropping a single question (`"Crop one question at a time"`) with rotation and zoom before OCR extraction.
 - **Decision:** Build an HTML5 Canvas interactive crop modal supporting 8 resize handles (`NW, N, NE, E, SE, S, SW, W`), 90° clockwise/counter-clockwise rotation, zoom (`50%–300%`), and region extraction to a normalized data URL. The cropped image is sent to `/api/ocr` which extracts text/LaTeX using canvas pattern recognition + AI Vision/OCR and pipes the extracted prompt directly into the Homework Solver.

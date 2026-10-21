@@ -12,7 +12,7 @@ const BLOG_ARTICLES = [
     date: 'October 2026',
     title: 'Why Neuro-Symbolic AI Outperforms Pure LLMs on AP Calculus & Quadratic Proofs',
     excerpt:
-      'Pure language models often hallucinate arithmetic sign flips. Discover how Gauth combines a deterministic Computer Algebra System (CAS) with GitHub Copilot SDK and Azure OpenAI for 99.8% verified accuracy.',
+      'Pure language models often hallucinate arithmetic sign flips. Discover how Tavi combines a deterministic Computer Algebra System (CAS) with GitHub Copilot SDK and Azure OpenAI for 99.8% verified accuracy.',
     link: '/calculator',
   },
   {
@@ -28,7 +28,7 @@ const BLOG_ARTICLES = [
     slug: 'visual-learning-atlas-and-academy',
     category: 'Cognitive Science',
     date: 'September 2026',
-    title: 'From Static Formulas to 3D Intuition: Inside Gauth Atlas & 15-Minute Academy Courses',
+    title: 'From Static Formulas to 3D Intuition: Inside Tavi Atlas & 15-Minute Academy Courses',
     excerpt:
       'Visualizing secant lines approaching a tangent or quantum wavefunctions tunneling through barriers builds lasting exam recall 3× faster than rote memorization.',
     link: '/atlas',

@@ -131,7 +131,7 @@ export default function AuthPage() {
         <span className="eyebrow text-atelier-vermilion">{t("Make a little room for learning")}</span>
         <h1>{t("A clearer mind")}<br />{t("starts here.")}</h1>
         <p>{t("Your questions, your discoveries, your next big idea. Pick up where your curiosity left off.")}</p>
-        <div className="auth-note">{t("New here? An invitation is your way in.")}<Link href="/aboutus" className="mt-3 block font-medium text-atelier-vermilion">{t("Get to know Gauth →")}</Link>
+        <div className="auth-note">{t("New here? An invitation is your way in.")}<Link href="/aboutus" className="mt-3 block font-medium text-atelier-vermilion">{t("Get to know Tavi →")}</Link>
         </div>
       </aside>
 
@@ -272,7 +272,7 @@ export default function AuthPage() {
           </div>
         ) : (
           <form onSubmit={handleRegister} className="mt-5 space-y-3">
-            <p className="text-xs leading-relaxed text-slate-500">{t("Registration requires a single-use invitation code (")}<code className="font-mono text-atelier-obsidian">GAUTH-XXXX-XXXX</code>{t(") issued for your email address.")}</p>
+            <p className="text-xs leading-relaxed text-slate-500">{t("Registration requires a single-use invitation code (")}<code className="font-mono text-atelier-obsidian">TAVI-XXXX-XXXX</code>{t(") issued for your email address.")}</p>
 
             {regError && (
               <div
@@ -302,7 +302,7 @@ export default function AuthPage() {
                 required
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                placeholder="GAUTH-XXXX-XXXX"
+                placeholder="TAVI-XXXX-XXXX"
                 data-testid="register-invite-code-input"
                 className="lumina-input mt-1.5 w-full px-4 py-3 font-mono text-sm font-semibold"
               />
